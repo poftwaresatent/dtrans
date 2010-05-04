@@ -34,6 +34,8 @@
 
 #include <vector>
 #include <map>
+#include <string>
+#include <stdio.h>
 
 
 namespace dtrans {  
@@ -53,7 +55,9 @@ namespace dtrans {
     double get(size_t ix, size_t iy) const;
     
     void compute();
-
+    
+    void dump(FILE * fp, std::string const & prefix) const;
+    
   protected:
     typedef std::multimap<double, size_t> queue_t;
     typedef queue_t::iterator queue_it;

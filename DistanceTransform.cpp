@@ -283,4 +283,78 @@ namespace dtrans {
     }
   }
   
+  
+  void DistanceTransform::
+  dump(FILE * fp, std::string const & prefix) const
+  {
+    fprintf(fp, "%skey\n", prefix.c_str());
+    size_t iy(m_dimy);
+    while (iy > 0) {
+      --iy;
+      fprintf(fp, "%s  ", prefix.c_str());
+      for (size_t ix(0); ix < m_dimx; ++ix) {
+	double const val(m_key[index(ix, iy)]);
+	if (isinf(val)) {
+	  fprintf(fp, " inf    ");
+	}
+	else if (isnan(val)) {
+	  fprintf(fp, " nan    ");
+	}
+	else if (fabs(fmod(val, 1)) < 1e-6) {
+	  fprintf(fp, "%- 7d  ", static_cast<int>(rint(val)));
+	}
+	else {
+	  fprintf(fp, "% 6.4f  ", val);
+	}
+      }
+      fprintf(fp, "\n");
+    }
+
+    fprintf(fp, "%srhs\n", prefix.c_str());
+    iy = m_dimy;
+    while (iy > 0) {
+      --iy;
+      fprintf(fp, "%s  ", prefix.c_str());
+      for (size_t ix(0); ix < m_dimx; ++ix) {
+	double const val(m_rhs[index(ix, iy)]);
+	if (isinf(val)) {
+	  fprintf(fp, " inf    ");
+	}
+	else if (isnan(val)) {
+	  fprintf(fp, " nan    ");
+	}
+	else if (fabs(fmod(val, 1)) < 1e-6) {
+	  fprintf(fp, "%- 7d  ", static_cast<int>(rint(val)));
+	}
+	else {
+	  fprintf(fp, "% 6.4f  ", val);
+	}
+      }
+      fprintf(fp, "\n");
+    }
+
+    fprintf(fp, "%svalue\n", prefix.c_str());
+    iy = m_dimy;
+    while (iy > 0) {
+      --iy;
+      fprintf(fp, "%s  ", prefix.c_str());
+      for (size_t ix(0); ix < m_dimx; ++ix) {
+	double const val(m_value[index(ix, iy)]);
+	if (isinf(val)) {
+	  fprintf(fp, " inf    ");
+	}
+	else if (isnan(val)) {
+	  fprintf(fp, " nan    ");
+	}
+	else if (fabs(fmod(val, 1)) < 1e-6) {
+	  fprintf(fp, "%- 7d  ", static_cast<int>(rint(val)));
+	}
+	else {
+	  fprintf(fp, "% 6.4f  ", val);
+	}
+      }
+      fprintf(fp, "\n");
+    }
+  }
+  
 }

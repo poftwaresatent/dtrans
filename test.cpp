@@ -31,28 +31,37 @@
 
 #include "DistanceTransform.hpp"
 #include <iostream>
+#include <stdio.h>
 
 using namespace dtrans;
 using namespace std;
 
 int main(int argc, char ** argv)
 {
-  DistanceTransform dt(20, 10, 0.1);
-  
+  DistanceTransform dt(4, 3, 0.1);
   bool ok(true);
+  dt.dump(stdout, "init  ");
+  
   if ( ! dt.set(0, 0, 1.0)) {
     ok = false;
     cout << "dt.set(0, 0, 1.0) failed\n";
   }
+  dt.dump(stdout, "test 1 ");
+  
   if (dt.set(20, 10, 1.0)) {
     ok = false;
     cout << "dt.set(20, 10, 1.0) should have failed\n";
   }
+  dt.dump(stdout, "test 2 ");
+
   dt.compute();
+  dt.dump(stdout, "test 3 ");
+  
   if (1.0 != dt.get(0, 0)) {
     ok = false;
     cout << "dt.get(0, 0) should have returned 1.0 instead of " << dt.get(0, 0) << "\n";
   }
+  dt.dump(stdout, "test 4 ");
   
   if (ok) {
     cout << "SUCCESS\n";
