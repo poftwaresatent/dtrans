@@ -46,22 +46,22 @@ int main(int argc, char ** argv)
     ok = false;
     cout << "dt.set(0, 0, 1.0) failed\n";
   }
-  dt.dump(stdout, "test 1 ");
+  dt.dump(stdout, "test1  ");
   
   if (dt.set(20, 10, 1.0)) {
     ok = false;
     cout << "dt.set(20, 10, 1.0) should have failed\n";
   }
-  dt.dump(stdout, "test 2 ");
+  dt.dump(stdout, "test2  ");
 
   dt.compute();
-  dt.dump(stdout, "test 3 ");
+  dt.dump(stdout, "test3  ");
   
   if (1.0 != dt.get(0, 0)) {
     ok = false;
     cout << "dt.get(0, 0) should have returned 1.0 instead of " << dt.get(0, 0) << "\n";
   }
-  dt.dump(stdout, "test 4 ");
+  dt.dump(stdout, "test4  ");
   
   if (ok) {
     cout << "SUCCESS\n";

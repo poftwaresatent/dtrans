@@ -261,7 +261,10 @@ namespace dtrans {
     }
 
     else {
-      std::cerr << "bug in propagate? rhs >= value\n";
+      std::cerr << "bug in propagate? rhs >= value\n"
+		<< "  index: " << index << " (" << (index % m_dimx) << ", " << (index / m_dimx) << ")\n"
+		<< "  rhs:   " << rhs << "\n"
+		<< "  value: " << m_value[index] << "\n";
       m_value[index] = infinity;
       // In this case, E-Star would propagate to all downwind
       // cells... but we do not track that information here in the
@@ -284,6 +287,31 @@ namespace dtrans {
   }
   
   
+  static void pval(FILE * fp, double val)
+  {
+    if (isinf(val)) {
+      fprintf(fp, " inf    ");
+    }
+    else if (isnan(val)) {
+      fprintf(fp, " nan    ");
+    }
+    else if (fabs(val) >= 1e4) {
+      if (val > 0) {
+	fprintf(fp, " huge   ");
+      }
+      else {
+	fprintf(fp, " -huge  ");
+      }
+    }
+    else if (fabs(fmod(val, 1)) < 1e-6) {
+      fprintf(fp, "%- 6d  ", static_cast<int>(rint(val)));
+    }
+    else {
+      fprintf(fp, "% 6.4f  ", val);
+    }
+  }
+  
+  
   void DistanceTransform::
   dump(FILE * fp, std::string const & prefix) const
   {
@@ -293,22 +321,12 @@ namespace dtrans {
       --iy;
       fprintf(fp, "%s  ", prefix.c_str());
       for (size_t ix(0); ix < m_dimx; ++ix) {
-	double const val(m_key[index(ix, iy)]);
-	if (isinf(val)) {
-	  fprintf(fp, " inf    ");
-	}
-	else if (isnan(val)) {
-	  fprintf(fp, " nan    ");
-	}
-	else if (fabs(fmod(val, 1)) < 1e-6) {
-	  fprintf(fp, "%- 7d  ", static_cast<int>(rint(val)));
-	}
-	else {
-	  fprintf(fp, "% 6.4f  ", val);
-	}
+	pval(fp, m_key[index(ix, iy)]);
       }
       fprintf(fp, "\n");
     }
+
+
 
     fprintf(fp, "%srhs\n", prefix.c_str());
     iy = m_dimy;
@@ -316,22 +334,12 @@ namespace dtrans {
       --iy;
       fprintf(fp, "%s  ", prefix.c_str());
       for (size_t ix(0); ix < m_dimx; ++ix) {
-	double const val(m_rhs[index(ix, iy)]);
-	if (isinf(val)) {
-	  fprintf(fp, " inf    ");
-	}
-	else if (isnan(val)) {
-	  fprintf(fp, " nan    ");
-	}
-	else if (fabs(fmod(val, 1)) < 1e-6) {
-	  fprintf(fp, "%- 7d  ", static_cast<int>(rint(val)));
-	}
-	else {
-	  fprintf(fp, "% 6.4f  ", val);
-	}
+	pval(fp, m_rhs[index(ix, iy)]);
       }
       fprintf(fp, "\n");
     }
+
+
 
     fprintf(fp, "%svalue\n", prefix.c_str());
     iy = m_dimy;
@@ -339,19 +347,7 @@ namespace dtrans {
       --iy;
       fprintf(fp, "%s  ", prefix.c_str());
       for (size_t ix(0); ix < m_dimx; ++ix) {
-	double const val(m_value[index(ix, iy)]);
-	if (isinf(val)) {
-	  fprintf(fp, " inf    ");
-	}
-	else if (isnan(val)) {
-	  fprintf(fp, " nan    ");
-	}
-	else if (fabs(fmod(val, 1)) < 1e-6) {
-	  fprintf(fp, "%- 7d  ", static_cast<int>(rint(val)));
-	}
-	else {
-	  fprintf(fp, "% 6.4f  ", val);
-	}
+	pval(fp, m_value[index(ix, iy)]);
       }
       fprintf(fp, "\n");
     }
