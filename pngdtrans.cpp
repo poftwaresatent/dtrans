@@ -108,14 +108,22 @@ int main(int argc, char ** argv)
   png_byte in_min(std::numeric_limits<png_byte>::max());
   for (png_uint_32 irow(0); irow < height; ++irow) {
     png_bytep row(row_pointers[irow]);
+    fprintf(stderr, "    ");
     for (png_uint_32 icol(0); icol < width; ++icol) {
-      if (row[icol] < in_max) {
+      if (row[icol] > in_max) {
 	in_max = row[icol];
       }
-      if (row[icol] > in_min) {
+      if (row[icol] < in_min) {
 	in_min = row[icol];
       }
+      switch (row[icol] >> 6) {
+      case 0: fprintf(stderr, "#"); break;
+      case 1: fprintf(stderr, "*"); break;
+      case 2: fprintf(stderr, "o"); break;
+      case 3: fprintf(stderr, "."); break;
+      }
     }
+    fprintf(stderr, "\n");
   }
   fprintf(stderr, "  input range %u to %u\n", (unsigned int) in_min, (unsigned int) in_max);
   
@@ -124,7 +132,7 @@ int main(int argc, char ** argv)
     png_bytep row(row_pointers[irow]);
     for (png_uint_32 icol(0); icol < width; ++icol) {
       if (row[icol] == in_min) {
-	dt.set(icol, irow, 0);
+	dt.set(icol, height - irow - 1, 0);
       }
     }
   }

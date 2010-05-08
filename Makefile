@@ -1,6 +1,7 @@
 CXX= g++
-CPPFLAGS= -Wall
+CPPFLAGS= -Wall -I/opt/local/include
 CXXFLAGS= $(CPPFLAGS) -pipe -O0 -g
+LDFLAGS= -L/opt/local/lib
 
 SRCS= DistanceTransform.cpp
 OBJS= $(SRCS:.cpp=.o)
@@ -11,7 +12,7 @@ test: $(OBJS) test.o
 	$(CXX) -o test test.o $(OBJS)
 
 pngdtrans: $(OBJS) pngdtrans.o
-	$(CXX) -o pngdtrans pngdtrans.o $(OBJS) -lpng -lm
+	$(CXX) -o pngdtrans pngdtrans.o $(OBJS) $(LDFLAGS) -lpng -lm
 
 clean:
 	rm -f *~ *.o test pngdtrans
