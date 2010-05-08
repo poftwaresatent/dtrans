@@ -40,21 +40,30 @@
 using namespace dtrans;
 
 
-static png_structp png_ptr;
-static png_infop info_ptr;
-static png_infop end_info;
+static png_structp read_ptr;
+static png_infop read_info_ptr;
+static png_infop read_info_end_ptr;
+
+static png_structp write_ptr;
+static png_infop write_info_ptr;
 
 
 static void cleanup()
 {
-  if (end_info) {
-    png_destroy_info_struct(png_ptr, &end_info);
+  if (read_ptr) {
+    png_destroy_read_struct(&read_ptr, &read_info_ptr, &read_info_end_ptr);
   }
-  if (info_ptr) {
-    png_destroy_info_struct(png_ptr, &info_ptr);
+  if (read_info_ptr) {
+    png_destroy_info_struct(read_ptr, &read_info_ptr);
   }
-  if (png_ptr) {
-    png_destroy_read_struct(&png_ptr, 0, 0);
+  if (read_info_end_ptr) {
+    png_destroy_info_struct(read_ptr, &read_info_end_ptr);
+  }
+  if (write_ptr) {
+    png_destroy_write_struct(&write_ptr, &write_info_ptr);
+  }
+  if (write_info_ptr) {
+    png_destroy_info_struct(write_ptr, &write_info_ptr);
   }
 }
 
@@ -64,26 +73,26 @@ int main(int argc, char ** argv)
   if (0 != atexit(cleanup)) {
     errx(EXIT_FAILURE, "atexit() failed");
   }
-  png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
-  if ( ! png_ptr) {
+  read_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
+  if ( ! read_ptr) {
     errx(EXIT_FAILURE, "png_create_read_struct() failed");
   }
-  info_ptr = png_create_info_struct(png_ptr);
-  if ( ! info_ptr) {
+  read_info_ptr = png_create_info_struct(read_ptr);
+  if ( ! read_info_ptr) {
     errx(EXIT_FAILURE, "png_create_info_struct() failed");
   }
-  end_info = png_create_info_struct(png_ptr);
-  if ( ! end_info) {
+  read_info_end_ptr = png_create_info_struct(read_ptr);
+  if ( ! read_info_end_ptr) {
     errx(EXIT_FAILURE, "png_create_info_struct() failed");
   }
   
   fprintf(stderr, "reading PNG from stdin\n");
-  png_init_io(png_ptr, stdin);
-  png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, 0);
+  png_init_io(read_ptr, stdin);
+  png_read_png(read_ptr, read_info_ptr, PNG_TRANSFORM_IDENTITY, 0);
   
   png_uint_32 width, height;
   int bit_depth, color_type, interlace_type, compression_type, filter_type;
-  png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type,
+  png_get_IHDR(read_ptr, read_info_ptr, &width, &height, &bit_depth, &color_type,
 	       &interlace_type, &compression_type, &filter_type);
   char const * color_type_str("unknown color type");
   switch (color_type) {
@@ -99,8 +108,11 @@ int main(int argc, char ** argv)
   if (PNG_COLOR_TYPE_GRAY != color_type) {
     errx(EXIT_FAILURE, "input is not grayscale");
   }
+  if (8 != bit_depth) {
+    errx(EXIT_FAILURE, "input is not 8-bit");
+  }
   
-  png_bytepp row_pointers(png_get_rows(png_ptr, info_ptr));
+  png_bytepp row_pointers(png_get_rows(read_ptr, read_info_ptr));
   if ( ! row_pointers) {
     errx(EXIT_FAILURE, "png_get_rows() failed");
   }
@@ -170,6 +182,22 @@ int main(int argc, char ** argv)
     fprintf(stderr, "\n");
   }
   
+  write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
+  if ( ! write_ptr) {
+    errx(EXIT_FAILURE, "png_create_write_struct() failed");
+  }
+  
+  write_info_ptr = png_create_info_struct(write_ptr);
+  if ( ! write_info_ptr) {
+    errx(EXIT_FAILURE, "png_create_info_struct() failed");
+  }
+  
+  png_init_io(write_ptr, stdout);
+  png_set_IHDR(write_ptr, write_info_ptr, width, height,
+	       bit_depth, color_type, interlace_type,
+	       compression_type, filter_type);
+  png_set_rows(write_ptr, write_info_ptr, row_pointers);
+  png_write_png(write_ptr, write_info_ptr, PNG_TRANSFORM_IDENTITY, 0);
   
   errx(EXIT_SUCCESS, "byebye");
 }
