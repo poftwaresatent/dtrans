@@ -36,6 +36,7 @@
 // cheap error messages, should use something else...
 #include <iostream>
 
+
 namespace dtrans {
   
   double const DistanceTransform::epsilon(1e-6);
@@ -92,9 +93,13 @@ namespace dtrans {
   void DistanceTransform::
   compute()
   {
-    while ( ! m_queue.empty()) {
+    for (size_t ii(0); ! m_queue.empty(); ++ii) {
+      fprintf(stdout, "  iteration %zu\n", ii);
+      dump(stdout, "    ");
       propagate();
     }
+    fprintf(stdout, "  final\n");
+    dump(stdout, "    ");
   }
   
   
@@ -118,14 +123,23 @@ namespace dtrans {
   void DistanceTransform::
   requeue(size_t index)
   {
-    // If we are locally consistent, then remove the index from the
-    // queue.
-    if (m_value[index] == m_rhs[index]) {
+    double const rhs(fabs(m_rhs[index]));
+    double const value(fabs(m_value[index]));
+    
+    // Special case of dtrans: we only propagate out once (unlike E*),
+    // so we can just ignore when the rhs is bigger than the value. In
+    // the full-blown implementation, the check below is for strict
+    // equality instead. Beware that this is implicitly assumed in
+    // other parts of this code.
+    if (rhs >= value) {
       if (m_key[index] >= 0) {
 	if ( ! unqueue(index)) {
 	  std::cerr << "bug in requeue? could not unqueue consistent index\n";
 	}
 	m_key[index] = -1;
+      }
+      if (rhs != value) { // fix the data structures for the dtrans special case
+	m_rhs[index] = m_value[index]; // re-read from m_value to get the same sign, in case of fixed cells
       }
       return;
     }
@@ -133,7 +147,7 @@ namespace dtrans {
     // Otherwise, add or re-add the index, keeping track of its key
     // and handling the special negative distances. Avoid re-adding an
     // index under the same key.
-    double const key(std::min(fabs(m_value[index]), fabs(m_rhs[index])));
+    double const key(std::min(value, rhs));
     if (m_key[index] < 0) {
       m_key[index] = key;
       m_queue.insert(std::make_pair(key, index));
@@ -187,10 +201,15 @@ namespace dtrans {
       }
     }
     
-    // This probably never happens, because in order to arrive here we
-    // need to have expanded one of our neighbors.
+    // This probably never happens, at least in the dtrans special
+    // case, because in order to arrive here we need to have expanded
+    // one of our neighbors.
     if (props.empty()) {
-      std::cerr << "bug in update? no valid propagators\n";
+      std::cerr << "bug in update? no valid propagators\n"
+		<< "  index: " << index << " (" << (index % m_dimx) << ", " << (index / m_dimx) << ")\n"
+		<< "  key:   " << m_key[index] << "\n"
+		<< "  rhs:   " << m_rhs[index] << "\n"
+		<< "  value: " << m_value[index] << "\n";
       m_rhs[index] = infinity;
       requeue(index);
       return;
@@ -263,6 +282,7 @@ namespace dtrans {
     else {
       std::cerr << "bug in propagate? rhs >= value\n"
 		<< "  index: " << index << " (" << (index % m_dimx) << ", " << (index / m_dimx) << ")\n"
+		<< "  key:   " << m_key[index] << "\n"
 		<< "  rhs:   " << rhs << "\n"
 		<< "  value: " << m_value[index] << "\n";
       m_value[index] = infinity;
@@ -304,10 +324,10 @@ namespace dtrans {
       }
     }
     else if (fabs(fmod(val, 1)) < 1e-6) {
-      fprintf(fp, "%- 6d  ", static_cast<int>(rint(val)));
+      fprintf(fp, "% 6d  ", static_cast<int>(rint(val)));
     }
     else {
-      fprintf(fp, "% 6.4f  ", val);
+      fprintf(fp, "% 6.4f ", val);
     }
   }
   
