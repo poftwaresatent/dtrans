@@ -30,10 +30,12 @@
  */
 
 #include "DistanceTransform.hpp"
+#include <limits>
 #include <png.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <err.h>
+#include <math.h>
 
 using namespace dtrans;
 
@@ -93,12 +95,65 @@ int main(int argc, char ** argv)
   }
   fprintf(stderr, "  %u by %u pixels with %d bits, %s\n",
 	  (unsigned int) width, (unsigned int) height, bit_depth, color_type_str);
-    
-  fprintf(stderr, "retrieving row pointers\n");
+  
+  if (PNG_COLOR_TYPE_GRAY != color_type) {
+    errx(EXIT_FAILURE, "input is not grayscale");
+  }
+  
   png_bytepp row_pointers(png_get_rows(png_ptr, info_ptr));
   if ( ! row_pointers) {
     errx(EXIT_FAILURE, "png_get_rows() failed");
   }
+  png_byte in_max(std::numeric_limits<png_byte>::min());
+  png_byte in_min(std::numeric_limits<png_byte>::max());
+  for (png_uint_32 irow(0); irow < height; ++irow) {
+    png_bytep row(row_pointers[irow]);
+    for (png_uint_32 icol(0); icol < width; ++icol) {
+      if (row[icol] < in_max) {
+	in_max = row[icol];
+      }
+      if (row[icol] > in_min) {
+	in_min = row[icol];
+      }
+    }
+  }
+  fprintf(stderr, "  input range %u to %u\n", (unsigned int) in_min, (unsigned int) in_max);
+  
+  DistanceTransform dt(width, height, 1);
+  for (png_uint_32 irow(0); irow < height; ++irow) {
+    png_bytep row(row_pointers[irow]);
+    for (png_uint_32 icol(0); icol < width; ++icol) {
+      if (row[icol] == in_min) {
+	dt.set(icol, irow, 0);
+      }
+    }
+  }
+  fprintf(stderr, "  distance transform input\n");
+  dt.dump(stderr, "    ");
+  
+  dt.compute();
+  fprintf(stderr, "  distance transform output\n");
+  dt.dump(stderr, "    ");
+  
+  double out_max(0);
+  for (png_uint_32 irow(0); irow < height; ++irow) {
+    png_bytep row(row_pointers[irow]);
+    for (png_uint_32 icol(0); icol < width; ++icol) {
+      double const val(dt.get(icol, irow));
+      if (val > out_max) {
+	out_max = val;
+      }
+    }
+  }
+  fprintf(stderr, "  output range 0 to %f\n", out_max);
+  
+  for (png_uint_32 irow(0); irow < height; ++irow) {
+    png_bytep row(row_pointers[irow]);
+    for (png_uint_32 icol(0); icol < width; ++icol) {
+      row[icol] = (png_uint_32) rint(255.0 * dt.get(icol, irow) / out_max);
+    }
+  }
+  
   
   errx(EXIT_SUCCESS, "byebye");
 }

@@ -11,7 +11,7 @@ test: $(OBJS) test.o
 	$(CXX) -o test test.o $(OBJS)
 
 pngdtrans: $(OBJS) pngdtrans.o
-	$(CXX) -o pngdtrans pngdtrans.o $(OBJS) -lpng
+	$(CXX) -o pngdtrans pngdtrans.o $(OBJS) -lpng -lm
 
 clean:
 	rm -f *~ *.o test pngdtrans
