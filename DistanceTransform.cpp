@@ -85,7 +85,7 @@ namespace dtrans {
     if (cell >= m_ncells) {
       return infinity;
     }
-    return m_value[cell];
+    return fabs(m_value[cell]);
   }
   
   
@@ -174,7 +174,7 @@ namespace dtrans {
   void DistanceTransform::
   update(size_t index)
   {
-    if (m_value[index] <= 0) {	// fixed cell, skip it
+    if ((m_rhs[index] <= 0) || (m_value[index] <= 0)) {	// fixed cell, skip it
       return;
     }
     
@@ -269,10 +269,9 @@ namespace dtrans {
   propagate()
   {
     size_t const index(pop());
-    double const rhs(fabs(m_rhs[index]));
     
-    if (m_value[index] > rhs) {
-      m_value[index] = rhs;
+    if (fabs(m_value[index]) > fabs(m_rhs[index])) {
+      m_value[index] = m_rhs[index];
       if (index >= m_dimx) {	// south
 	update(index - m_dimx);
       }
@@ -292,7 +291,7 @@ namespace dtrans {
       std::cerr << "bug in propagate? rhs >= value\n"
 		<< "  index: " << index << " (" << (index % m_dimx) << ", " << (index / m_dimx) << ")\n"
 		<< "  key:   " << m_key[index] << "\n"
-		<< "  rhs:   " << rhs << "\n"
+		<< "  rhs:   " << m_rhs[index] << "\n"
 		<< "  value: " << m_value[index] << "\n";
       m_value[index] = infinity;
       // In this case, E-Star would propagate to all downwind
