@@ -157,9 +157,17 @@ int main(int argc, char ** argv)
   
   for (png_uint_32 irow(0); irow < height; ++irow) {
     png_bytep row(row_pointers[irow]);
+    fprintf(stderr, "    ");
     for (png_uint_32 icol(0); icol < width; ++icol) {
-      row[icol] = (png_uint_32) rint(255.0 * dt.get(icol, irow) / out_max);
+      row[icol] = (png_uint_32) rint(255.0 * dt.get(icol, height - irow - 1) / out_max);
+      switch (row[icol] >> 6) {
+      case 0: fprintf(stderr, "#"); break;
+      case 1: fprintf(stderr, "*"); break;
+      case 2: fprintf(stderr, "o"); break;
+      case 3: fprintf(stderr, "."); break;
+      }
     }
+    fprintf(stderr, "\n");
   }
   
   
