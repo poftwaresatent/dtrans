@@ -38,12 +38,12 @@
 #include <stdio.h>
 
 
-namespace dtrans {  
+namespace dtrans {
+  
   
   class DistanceTransform
   {
   public:
-    static double const epsilon;
     static double const infinity;
     
     DistanceTransform(size_t dimx, size_t dimy, double scale);
@@ -55,6 +55,7 @@ namespace dtrans {
     double get(size_t ix, size_t iy) const;
     
     void compute();
+    void compute(FILE * dbg_fp, std::string const & dbg_prefix);
     
     void dump(FILE * fp, std::string const & prefix) const;
     

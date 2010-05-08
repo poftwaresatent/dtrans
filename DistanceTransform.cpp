@@ -39,7 +39,6 @@
 
 namespace dtrans {
   
-  double const DistanceTransform::epsilon(1e-6);
   double const DistanceTransform::infinity(std::numeric_limits<double>::max());
   
   
@@ -93,13 +92,23 @@ namespace dtrans {
   void DistanceTransform::
   compute()
   {
-    for (size_t ii(0); ! m_queue.empty(); ++ii) {
-      fprintf(stdout, "  iteration %zu\n", ii);
-      dump(stdout, "    ");
+    while ( ! m_queue.empty()) {
       propagate();
     }
-    fprintf(stdout, "  final\n");
-    dump(stdout, "    ");
+  }
+  
+  
+  void DistanceTransform::
+  compute(FILE * dbg_fp, std::string const & dbg_prefix)
+  {
+    std::string prefix(dbg_prefix + "  ");
+    for (size_t ii(0); ! m_queue.empty(); ++ii) {
+      fprintf(stdout, "%siteration %zu\n", dbg_prefix.c_str(), ii);
+      dump(stdout, prefix.c_str());
+      propagate();
+    }
+    fprintf(stdout, "%sfinal\n", dbg_prefix.c_str());
+    dump(stdout, prefix.c_str());
   }
   
   
