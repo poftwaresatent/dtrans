@@ -29,65 +29,49 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DTRANS_DISTANCE_TRANSFORM_HPP
-#define DTRANS_DISTANCE_TRANSFORM_HPP
+#ifndef DTRANS_PNGIO_HPP
+#define DTRANS_PNGIO_HPP
 
-#include <vector>
-#include <map>
-#include <string>
-#include <stdio.h>
+#include <png.h>
+#include <stdexcept>
 
 
 namespace dtrans {
+
+  class DistanceTransform;
   
   
-  class DistanceTransform
+  class PNGIO
   {
   public:
-    static double const infinity;
+    virtual ~PNGIO();
     
-    DistanceTransform(size_t dimx, size_t dimy, double scale);
+    void read(std::string const & filename) throw(std::runtime_error);
+    void read(FILE * fp) throw(std::runtime_error);
     
-    inline bool isValid(size_t ix, size_t iy) const
-    { return (ix < m_dimx) && (iy < m_dimy); }
+    static void write(DistanceTransform const & dt,
+		      std::string const & filename, double maxval) throw(std::runtime_error);
     
-    inline size_t dimX() const { return m_dimx; }
-    inline size_t dimY() const { return m_dimy; }
+    static void write(DistanceTransform const & dt,
+		      FILE * fp, double maxval) throw(std::runtime_error);
     
-    bool set(size_t ix, size_t iy, double dist);
-    double get(size_t ix, size_t iy) const;
+    png_byte maxVal() const;
+    png_byte minVal() const;
     
-    void compute();
-    void compute(FILE * dbg_fp, std::string const & dbg_prefix);
-    
-    void dump(FILE * fp, std::string const & prefix) const;
+    DistanceTransform * createTransform(png_byte thresh, double scale, bool invert)
+      const throw(std::runtime_error);
     
   protected:
-    typedef std::multimap<double, size_t> queue_t;
-    typedef queue_t::iterator queue_it;
+    png_structp read_;
+    png_infop read_info_, read_info_end_;
+    png_uint_32 width_, height_;
+    png_bytepp row_p_;
+    png_byte max_val_, min_val_;
     
-    size_t const m_dimx;
-    size_t const m_dimy;
-    size_t const m_ncells;
-    size_t const m_toprow;
-    size_t const m_rightcol;
-    double const m_scale;
-    double const m_scale2;
-    std::vector<double> m_value; // <=0 means "fixed"
-    std::vector<double> m_rhs;	 // <=0 means "fixed"
-    std::vector<double> m_key;	 // -1 means "not on queue"
-    queue_t m_queue;
-    
-    inline size_t index(size_t ix, size_t iy) const
-    { return ix + m_dimx * iy; }
-    
-    bool unqueue(size_t index);
-    void requeue(size_t index);
-    void update(size_t index);
-    size_t pop();
-    void propagate();
+    void init() throw(std::runtime_error);
+    void fini();
   };
   
 }
 
-#endif // DTRANS_DISTANCE_TRANSFORM_HPP
+#endif // DTRANS_PNGIO_HPP
