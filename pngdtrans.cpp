@@ -59,6 +59,7 @@ int main(int argc, char ** argv)
   string infname("-");
   string outfname("-");
   bool verbose(false);
+  int threshold(0);
   for (int iopt(1); iopt < argc; ++iopt) {
     string const opt(argv[iopt]);
     if ("-i" == opt) {
@@ -75,6 +76,16 @@ int main(int argc, char ** argv)
       }
       outfname = argv[iopt];
     }
+    else if ("-t" == opt) {
+      ++iopt;
+      if (iopt >= argc) {
+	errx(EXIT_FAILURE, "-t requires an argument (use -h for some help)");
+      }
+      if ((1 != sscanf(argv[iopt], "%d", &threshold))
+	  || (threshold < 0) || (threshold > 255)) {
+	errx(EXIT_FAILURE, "error reading threshold \"%s\"", argv[iopt]);
+      }
+    }
     else if ("-v" == opt) {
       verbose = true;
     }
@@ -82,6 +93,7 @@ int main(int argc, char ** argv)
       printf("usage [-i infile] [-o outfile] [-vh]\n"
 	     "  -i  input file name   (\"-\" for stdin, which is the default)\n"
 	     "  -o  output file name  (\"-\" for stdout, which is the default)\n"
+	     "  -t  threshold         threshold for distance initialization\n"
 	     "  -v                    verbose mode\n"
 	     "  -h                    this message\n");
       exit(EXIT_SUCCESS);
@@ -109,7 +121,7 @@ int main(int argc, char ** argv)
     if (verbose) {
       printf("creating DistanceTransform\n");
     }
-    DistanceTransform * dt(pngio.createTransform(pngio.minVal(), 0, false));
+    DistanceTransform * dt(pngio.createTransform(pngio.minVal(), threshold, false));
     if (verbose) {
       printf("  distance transform input\n");
       dt->dump(stdout, "    ");
