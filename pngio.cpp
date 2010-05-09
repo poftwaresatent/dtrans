@@ -115,6 +115,7 @@ namespace dtrans {
     if ((0 == width_) || (0 == height_)) {
       throw runtime_error("dtrans::PNGIO::createTransform(): no data");
     }
+    
     DistanceTransform * dt(new DistanceTransform(width_, height_, 1));
     
     for (png_uint_32 irow(0); irow < height_; ++irow) {
@@ -132,6 +133,8 @@ namespace dtrans {
 	}
       }
     }
+    
+    return dt;
   }
   
   
