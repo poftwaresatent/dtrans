@@ -233,7 +233,6 @@ namespace dtrans {
     // to lie along a different axis than the primary, and it needs to
     // be closer than m_scale to it.
     for (++ip; endp != ip; ++ip) {
-      // Is there a XOR on C++ bool type?
       bool const valid(northsouth ^ (ix == (ip->second % m_dimx)));
       if (valid) {
 	double const secondary(ip->first);
