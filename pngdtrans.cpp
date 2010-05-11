@@ -31,10 +31,7 @@
 
 #include "DistanceTransform.hpp"
 #include "pngio.hpp"
-//#include <string>
-//#include <stdlib.h>
 #include <err.h>
-//#include <math.h>
 
 using namespace dtrans;
 using namespace std;
@@ -58,8 +55,8 @@ int main(int argc, char ** argv)
   // parse options
   string infname("-");
   string outfname("-");
-  bool verbose(false);
-  int threshold(0);
+  int verbosity(0);
+  int inthresh(0);
   for (int iopt(1); iopt < argc; ++iopt) {
     string const opt(argv[iopt]);
     if ("-i" == opt) {
@@ -81,20 +78,23 @@ int main(int argc, char ** argv)
       if (iopt >= argc) {
 	errx(EXIT_FAILURE, "-t requires an argument (use -h for some help)");
       }
-      if ((1 != sscanf(argv[iopt], "%d", &threshold))
-	  || (threshold < 0) || (threshold > 255)) {
-	errx(EXIT_FAILURE, "error reading threshold \"%s\"", argv[iopt]);
+      if ((1 != sscanf(argv[iopt], "%d", &inthresh))
+	  || (inthresh < 0) || (inthresh > 255)) {
+	errx(EXIT_FAILURE, "error reading inthresh \"%s\"", argv[iopt]);
       }
     }
     else if ("-v" == opt) {
-      verbose = true;
+      ++verbosity;
+    }
+    else if ("-vv" == opt) {
+      verbosity += 2;
     }
     else if ("-h" == opt) {
       printf("usage [-i infile] [-o outfile] [-vh]\n"
 	     "  -i  input file name   (\"-\" for stdin, which is the default)\n"
 	     "  -o  output file name  (\"-\" for stdout, which is the default)\n"
-	     "  -t  threshold         threshold for distance initialization\n"
-	     "  -v                    verbose mode\n"
+	     "  -t  inthresh          threshold for distance initialization\n"
+	     "  -v                    verbose mode (multiple times makes it more verbose)\n"
 	     "  -h                    this message\n");
       exit(EXIT_SUCCESS);
     }
@@ -102,13 +102,13 @@ int main(int argc, char ** argv)
       errx(EXIT_FAILURE, "invalid option \"%s\" (use -h for some help)", argv[iopt]);
     }
   }
-  if (verbose && ("-" == outfname)) {
+  if ((verbosity > 0) && ("-" == outfname)) {
     errx(EXIT_FAILURE, "cannot use stdout in verbose mode, specify an output file using -o");
   }
   
   try {
 
-    if (verbose) {
+    if (verbosity > 0) {
       printf("reading from file %s\n", infname.c_str());
     }
     if ("-" == infname) {
@@ -118,18 +118,31 @@ int main(int argc, char ** argv)
       pngio.read(infname);
     }
     
-    if (verbose) {
+    if (verbosity > 0) {
       printf("creating DistanceTransform\n");
     }
-    DistanceTransform * dt(pngio.createTransform(pngio.minVal(), threshold, false));
-    if (verbose) {
+    static double const inscale(1); // XXX to do: make this an arg
+    DistanceTransform * dt(pngio.createTransform(inthresh, inscale, false));
+    if (verbosity > 0) {
       printf("  distance transform input\n");
       dt->dump(stdout, "    ");
       printf("propagating distance transform\n");
     }
     
-    dt->compute();
-    if (verbose) {
+    if (verbosity <= 1) {
+      dt->compute();
+    }
+    else {
+      int step(0);
+      printf("step %d\n", step);
+      dt->dumpQueue(stdout, "  ");
+      while (dt->propagate()) {
+	++step;
+	printf("step %d\n", step);
+	dt->dumpQueue(stdout, "  ");
+      }
+    }
+    if (verbosity > 0) {
       printf("  distance transform output\n");
       dt->dump(stdout, "    ");
     }
@@ -143,7 +156,7 @@ int main(int argc, char ** argv)
 	}
       }
     }
-    if (verbose) {
+    if (verbosity > 0) {
       printf("  output range 0 to %f\n", out_max);
       printf("writing result to %s\n", outfname.c_str());
     }

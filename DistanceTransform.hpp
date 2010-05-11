@@ -60,7 +60,14 @@ namespace dtrans {
     void compute();
     void compute(FILE * dbg_fp, std::string const & dbg_prefix);
     
+    /** Perform one cell expansion. If the queue is empty, it does
+	nothing.
+	\return true if it computed something, false otherwise
+	(i.e. when the queue was empty). */
+    bool propagate();
+    
     void dump(FILE * fp, std::string const & prefix) const;
+    void dumpQueue(FILE * fp, std::string const & prefix) const;
     
   protected:
     typedef std::multimap<double, size_t> queue_t;
@@ -85,7 +92,6 @@ namespace dtrans {
     void requeue(size_t index);
     void update(size_t index);
     size_t pop();
-    void propagate();
   };
   
 }

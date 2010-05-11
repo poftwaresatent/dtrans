@@ -265,9 +265,13 @@ namespace dtrans {
   }
   
   
-  void DistanceTransform::
+  bool DistanceTransform::
   propagate()
   {
+    if (m_queue.empty()) {
+      return false;
+    }
+    
     size_t const index(pop());
     
     if (fabs(m_value[index]) > fabs(m_rhs[index])) {
@@ -312,6 +316,8 @@ namespace dtrans {
 	update(index + 1);
       }      
     }
+    
+    return true;
   }
   
   
@@ -353,9 +359,7 @@ namespace dtrans {
       }
       fprintf(fp, "\n");
     }
-
-
-
+    
     fprintf(fp, "%srhs\n", prefix.c_str());
     iy = m_dimy;
     while (iy > 0) {
@@ -366,9 +370,7 @@ namespace dtrans {
       }
       fprintf(fp, "\n");
     }
-
-
-
+    
     fprintf(fp, "%svalue\n", prefix.c_str());
     iy = m_dimy;
     while (iy > 0) {
@@ -376,6 +378,53 @@ namespace dtrans {
       fprintf(fp, "%s  ", prefix.c_str());
       for (size_t ix(0); ix < m_dimx; ++ix) {
 	pval(fp, m_value[index(ix, iy)]);
+      }
+      fprintf(fp, "\n");
+    }
+  }
+  
+  
+  void DistanceTransform::
+  dumpQueue(FILE * fp, std::string const & prefix) const
+  {
+    double front_key(-1);
+    if ( ! m_queue.empty()) {
+      front_key = m_queue.begin()->first;
+    }
+    
+    size_t iy(m_dimy);
+    while (iy > 0) {
+      --iy;
+      fprintf(fp, "%s", prefix.c_str());
+      for (size_t ix(0); ix < m_dimx; ++ix) {
+	size_t const idx(index(ix, iy));
+	char const * cc(0);
+	bool const fixed((m_value[idx] <= 0) || (m_rhs[idx] <= 0));
+	if (m_key[idx] < 0) {
+	  if (fixed) {
+	    cc = "x";
+	  }
+	  else {
+	    cc = ".";
+	  }
+	}
+	else if ((front_key >= 0) && (m_key[idx] == front_key)) {
+	  if (fixed) {
+	    cc = "#";
+	  }
+	  else {
+	    cc = "*";
+	  }
+	}
+	else {
+	  if (fixed) {
+	    cc = "+";
+	  }
+	  else {
+	    cc = "o";
+	  }
+	}
+	fprintf(fp, "%s", cc);
       }
       fprintf(fp, "\n");
     }

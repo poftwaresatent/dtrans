@@ -53,9 +53,13 @@ int main(int argc, char ** argv)
     cout << "dt.set(20, 10, 1.0) should have failed\n";
   }
   dt.dump(stdout, "test2  ");
-
-  dt.compute();
-  dt.dump(stdout, "test3  ");
+  
+  int step(0);
+  while (dt.propagate()) {
+    printf("step %d\n", step);
+    dt.dumpQueue(stdout, "  ");
+    ++step;
+  }
   
   if (1.0 != dt.get(0, 0)) {
     ok = false;
