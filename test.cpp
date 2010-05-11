@@ -55,6 +55,9 @@ int main(int argc, char ** argv)
   dt.dump(stdout, "test2  ");
   
   int step(0);
+  printf("step %d\n", step);
+  dt.dumpQueue(stdout, "  ");
+  ++step;
   while (dt.propagate()) {
     printf("step %d\n", step);
     dt.dumpQueue(stdout, "  ");

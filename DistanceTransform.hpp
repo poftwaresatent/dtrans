@@ -72,6 +72,7 @@ namespace dtrans {
   protected:
     typedef std::multimap<double, size_t> queue_t;
     typedef queue_t::iterator queue_it;
+    typedef queue_t::const_iterator queue_cit;
     
     size_t const m_dimx;
     size_t const m_dimy;

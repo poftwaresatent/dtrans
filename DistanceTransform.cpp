@@ -233,7 +233,10 @@ namespace dtrans {
     // to lie along a different axis than the primary, and it needs to
     // be closer than m_scale to it.
     for (++ip; endp != ip; ++ip) {
-      if (northsouth && (ix != (ip->second % m_dimx))) {
+      // Is there a XOR on C++ bool type?
+      bool const valid((northsouth && (ix != (ip->second % m_dimx))) ||
+		       (( ! northsouth) && (ix == (ip->second % m_dimx))));
+      if (valid) {
 	double const secondary(ip->first);
 	if (m_scale > secondary - primary) {
 	  // Found it!
@@ -387,15 +390,32 @@ namespace dtrans {
   void DistanceTransform::
   dumpQueue(FILE * fp, std::string const & prefix) const
   {
-    double front_key(-1);
-    if ( ! m_queue.empty()) {
-      front_key = m_queue.begin()->first;
+    if (m_queue.empty()) {
+      fprintf(fp, "%sempty queue\n", prefix.c_str());
+      return;
     }
     
+    fprintf(fp, "%squeue: [key index rhs value]\n", prefix.c_str());
+    for (queue_cit iq(m_queue.begin()); iq != m_queue.end(); ++iq) {
+      fprintf(fp, "%s  ", prefix.c_str());
+      pval(fp, m_key[iq->second]);
+      fprintf(fp, "  (%zu, %zu)", iq->second % m_dimx, iq->second / m_dimx);
+      fprintf(fp, "  ");
+      pval(fp, m_rhs[iq->second]);
+      fprintf(fp, "  ");
+      pval(fp, m_value[iq->second]);
+      if (fabs(m_key[iq->second]) != iq->first) {
+	fprintf(fp, "  ERROR queue key (%g) mismatch", iq->first);
+      }
+      fprintf(fp, "\n");
+    }
+    
+    fprintf(fp, "%swavefront:\n", prefix.c_str());
+    double const front_key(m_queue.begin()->first);
     size_t iy(m_dimy);
     while (iy > 0) {
       --iy;
-      fprintf(fp, "%s", prefix.c_str());
+      fprintf(fp, "%s  ", prefix.c_str());
       for (size_t ix(0); ix < m_dimx; ++ix) {
 	size_t const idx(index(ix, iy));
 	char const * cc(0);
