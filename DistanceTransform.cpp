@@ -234,8 +234,7 @@ namespace dtrans {
     // be closer than m_scale to it.
     for (++ip; endp != ip; ++ip) {
       // Is there a XOR on C++ bool type?
-      bool const valid((northsouth && (ix != (ip->second % m_dimx))) ||
-		       (( ! northsouth) && (ix == (ip->second % m_dimx))));
+      bool const valid(northsouth ^ (ix == (ip->second % m_dimx)));
       if (valid) {
 	double const secondary(ip->first);
 	if (m_scale > secondary - primary) {
@@ -447,6 +446,43 @@ namespace dtrans {
 	fprintf(fp, "%s", cc);
       }
       fprintf(fp, "\n");
+    }
+  }
+  
+  
+  void DistanceTransform::
+  stat(double & minval, double & maxval, double & minkey, double & maxkey) const
+  {
+    minval = infinity;
+    maxval = - infinity;
+    for (size_t ii(0); ii < m_ncells; ++ii) {
+      double const val(fabs(m_value[ii]));
+      if (val < infinity) {
+	if (val > maxval) {
+	  maxval = val;
+	}
+	if (val < minval) {
+	  minval = val;
+	}
+      }
+      double const rhs(fabs(m_rhs[ii]));
+      if (rhs < infinity) {
+	if (rhs > maxval) {
+	  maxval = rhs;
+	}
+	if (rhs < minval) {
+	  minval = rhs;
+	}
+      }
+    }
+    
+    if (m_queue.empty()) {
+      minkey = infinity;
+      maxkey = - infinity;
+    }
+    else {
+      minkey = m_queue.begin()->first;
+      maxkey = m_queue.rbegin()->first;
     }
   }
   

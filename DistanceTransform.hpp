@@ -66,6 +66,7 @@ namespace dtrans {
 	(i.e. when the queue was empty). */
     bool propagate();
     
+    void stat(double & minval, double & maxval, double & minkey, double & maxkey) const;
     void dump(FILE * fp, std::string const & prefix) const;
     void dumpQueue(FILE * fp, std::string const & prefix) const;
     

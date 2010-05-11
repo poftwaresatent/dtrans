@@ -91,6 +91,9 @@ int main(int argc, char ** argv)
     else if ("-vv" == opt) {
       verbosity += 2;
     }
+    else if ("-vvv" == opt) {
+      verbosity += 3;
+    }
     else if ("-h" == opt) {
       printf("usage [-i infile] [-o outfile] [-vh]\n"
 	     "  -i  input file name   (\"-\" for stdin, which is the default)\n"
@@ -125,13 +128,23 @@ int main(int argc, char ** argv)
     }
     static double const inscale(1); // XXX to do: make this an arg
     DistanceTransform * dt(pngio.createTransform(inthresh, inscale, false));
-    if (verbosity > 0) {
+    if (verbosity > 1) {
       printf("  distance transform input\n");
       dt->dump(stdout, "    ");
-      printf("propagating distance transform\n");
+    }
+    double minval, maxval, minkey, maxkey;
+    dt->stat(minval, maxval, minkey, maxkey);
+    if (minval > maxval) {
+      errx(EXIT_FAILURE, "invalid input range, try adjusting the threshold with -t");
+    }
+    if (verbosity > 0) {
+      printf("  input range %f to %f\n", minval, maxval);
     }
     
-    if (verbosity <= 1) {
+    if (verbosity > 0) {
+      printf("propagating distance transform\n");
+    }
+    if (verbosity <= 2) {
       dt->compute();
     }
     else {
@@ -144,30 +157,22 @@ int main(int argc, char ** argv)
 	dt->dumpQueue(stdout, "  ");
       }
     }
-    if (verbosity > 0) {
+    if (verbosity > 1) {
       printf("  distance transform output\n");
       dt->dump(stdout, "    ");
     }
     
-    double out_max(0);
-    for (size_t ix(0); ix < dt->dimX(); ++ix) {
-      for (size_t iy(0); iy < dt->dimY(); ++iy) {
-	double const val(dt->get(ix, iy));
-	if (val > out_max) {
-	  out_max = val;
-	}
-      }
-    }
+    dt->stat(minval, maxval, minkey, maxkey);
     if (verbosity > 0) {
-      printf("  output range 0 to %f\n", out_max);
+      printf("  output range %f to %f\n", minval, maxval);
       printf("writing result to %s\n", outfname.c_str());
     }
     
     if ("-" == outfname) {
-      PNGIO::write(*dt, stdout, out_max);
+      PNGIO::write(*dt, stdout, maxval);
     }
     else {
-      PNGIO::write(*dt, outfname, out_max);
+      PNGIO::write(*dt, outfname, maxval);
     }
     
   }
