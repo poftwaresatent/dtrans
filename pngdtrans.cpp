@@ -31,7 +31,9 @@
 
 #include "DistanceTransform.hpp"
 #include "pngio.hpp"
+#include <limits>
 #include <err.h>
+#include <stdlib.h>
 
 using namespace dtrans;
 using namespace std;

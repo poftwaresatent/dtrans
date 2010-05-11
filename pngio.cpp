@@ -31,6 +31,7 @@
 
 #include "pngio.hpp"
 #include "DistanceTransform.hpp"
+#include <limits>
 #include <errno.h>
 #include <string.h>
 #include <math.h>
