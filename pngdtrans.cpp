@@ -59,6 +59,7 @@ int main(int argc, char ** argv)
   string outfname("-");
   int verbosity(0);
   int inthresh(0);
+  float inscale(1.0/255);
   for (int iopt(1); iopt < argc; ++iopt) {
     string const opt(argv[iopt]);
     if ("-i" == opt) {
@@ -85,6 +86,16 @@ int main(int argc, char ** argv)
 	errx(EXIT_FAILURE, "error reading inthresh \"%s\"", argv[iopt]);
       }
     }
+    else if ("-s" == opt) {
+      ++iopt;
+      if (iopt >= argc) {
+	errx(EXIT_FAILURE, "-s requires an argument (use -h for some help)");
+      }
+      if ((1 != sscanf(argv[iopt], "%f", &inscale))
+	  || (inthresh < 0) || (inthresh > 255)) {
+	errx(EXIT_FAILURE, "error reading inthresh \"%s\"", argv[iopt]);
+      }
+    }
     else if ("-v" == opt) {
       ++verbosity;
     }
@@ -99,8 +110,10 @@ int main(int argc, char ** argv)
 	     "  -i  input file name   (\"-\" for stdin, which is the default)\n"
 	     "  -o  output file name  (\"-\" for stdout, which is the default)\n"
 	     "  -t  inthresh          threshold for distance initialization\n"
+	     "  -s  inscale           scale for distance initialization (default %f which is 1/255)\n"
 	     "  -v                    verbose mode (multiple times makes it more verbose)\n"
-	     "  -h                    this message\n");
+	     "  -h                    this message\n",
+	     1.0/255);
       exit(EXIT_SUCCESS);
     }
     else {
@@ -126,7 +139,6 @@ int main(int argc, char ** argv)
     if (verbosity > 0) {
       printf("creating DistanceTransform\n");
     }
-    static double const inscale(1); // XXX to do: make this an arg
     DistanceTransform * dt(pngio.createTransform(inthresh, inscale, false));
     if (verbosity > 1) {
       printf("  distance transform input\n");
