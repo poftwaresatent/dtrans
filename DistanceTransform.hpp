@@ -38,36 +38,120 @@
 #include <stdio.h>
 
 
+/** \namespace dtrans Contains all distance transformation entities (classes, functions, etc). */
+
 namespace dtrans {
   
   
+  /**
+     Compute the distance to some initial level set throughout a
+     two-dimensional grid.
+   */  
   class DistanceTransform
   {
   public:
+    /** A (very large) positive number that will be considered
+	equivalent to infinity by the distance transform. */
     static double const infinity;
     
-    DistanceTransform(size_t dimx, size_t dimy, double scale);
+    /** A two-dimensional grid of cells, each of which stores its
+	distance to some initial level set. Plus some auxiliary data
+	and methods to propagate the distance transform out from the
+	initial set. */
+    DistanceTransform(/** Dimension (number of cells) along the X direction. */
+		      size_t dimx,
+		      /** Dimension (number of cells) along the Y direction. */
+		      size_t dimy,
+		      /** Scale of the cells: the length of one side
+			  of one cell is considered to be these many
+			  units. E.g. if the scale=0.1 then it will
+			  take 10 cells for the distance to grow by
+			  1. */
+		      double scale);
     
+    /** Check if a grid index is valid.
+	
+	\return True if the given grid coordinates are valid
+	(i.e. they lie within the grid dimensions specified at
+	construction time). */
     inline bool isValid(size_t ix, size_t iy) const
     { return (ix < m_dimx) && (iy < m_dimy); }
     
+    /** Dimension along X.
+	
+	\return The number of cells along the X direction. */
     inline size_t dimX() const { return m_dimx; }
+    
+    /** Dimension along Y.
+	
+	\return The number of cells along the Y direction. */
     inline size_t dimY() const { return m_dimy; }
     
+    /** Set a given cell (given by its X and Y index) to a certain
+	distance. Cells whose distance is set in this manner will be
+	used to seed the distance transform computation. The
+	propagation will not overwrite a cell's distance value if it
+	has been set using this method.
+
+	\return True if the cell's distance value has been set
+	(i.e. the given coordinates lie within the grid).
+    */
     bool set(size_t ix, size_t iy, double dist);
+    
+    /** Get the distance of a cell.
+	
+	\return The distance value of a cell (given by its X and Y
+	index). If the cell is invalid (i.e. it lies outside the
+	grid), then DistanceTransform::infinity is returned. */
     double get(size_t ix, size_t iy) const;
     
+    /** Propagate the distance transform until the entire grid has
+	been updated. Repeatedly calls propagate() until the queue is
+	empty. */
     void compute();
+    
+    /** Debugging version of compute(): propagates the entire grid,
+	and writes information about what it is doing at each
+	iteration. */
     void compute(FILE * dbg_fp, std::string const & dbg_prefix);
     
     /** Perform one cell expansion. If the queue is empty, it does
 	nothing.
+	
 	\return true if it computed something, false otherwise
 	(i.e. when the queue was empty). */
     bool propagate();
     
-    void stat(double & minval, double & maxval, double & minkey, double & maxkey) const;
+    /** Compute some (simple) statistics over the current state of the
+	grid and its associated queue.
+	
+	\note You can detect whether any valid stats are available by
+	checking that the returned max is higher than the returned
+	min. */
+    void stat(/** minimum distance value (including one-step
+		  lookahead) or +infinity in case no cell lies below
+		  infinity */
+	      double & minval,
+	      /** maximum distance value (including one-step
+		  lookahead) or -infinity in case no cell lies below
+		  infinity */
+	      double & maxval,
+	      /** minimum queue key, or +infinity in case the queue is
+		  empty */
+	      double & minkey,
+	      /** maximum queue key, or -infinity in case the queue is
+		  empty */
+	      double & maxkey) const;
+    
+    /** Write the current state of the grid, the one-step-lookahead,
+	as well as the queue key map in a (more or less)
+	human-readable format to the given FILE stream. Each line gets
+	prefixed with a user-defined string. */
     void dump(FILE * fp, std::string const & prefix) const;
+    
+    /** Write the current queue in a more or less human-readable
+	format to the provided FILE stream, prefixing each line with
+	the given user-defined string. */
     void dumpQueue(FILE * fp, std::string const & prefix) const;
     
   protected:
@@ -82,9 +166,9 @@ namespace dtrans {
     size_t const m_rightcol;
     double const m_scale;
     double const m_scale2;
-    std::vector<double> m_value; // <=0 means "fixed"
-    std::vector<double> m_rhs;	 // <=0 means "fixed"
-    std::vector<double> m_key;	 // -1 means "not on queue"
+    std::vector<double> m_value; /**< distance map, negative values mean "fixed cell" */
+    std::vector<double> m_rhs;	 /**< one-step look-ahead map, negative values mean "fixed cell" */
+    std::vector<double> m_key;	 /**< map of queue keys, a -1 means "not on queue" */
     queue_t m_queue;
     
     inline size_t index(size_t ix, size_t iy) const
