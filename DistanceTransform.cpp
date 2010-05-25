@@ -90,20 +90,28 @@ namespace dtrans {
   
   
   void DistanceTransform::
-  compute()
+  compute(double ceiling)
   {
     while ( ! m_queue.empty()) {
+      if (m_queue.begin()->first > ceiling) {
+	break;
+      }
       propagate();
     }
   }
   
   
   void DistanceTransform::
-  compute(FILE * dbg_fp, std::string const & dbg_prefix)
+  compute(double ceiling, FILE * dbg_fp, std::string const & dbg_prefix)
   {
     std::string prefix(dbg_prefix + "  ");
     for (size_t ii(0); ! m_queue.empty(); ++ii) {
       fprintf(stdout, "%siteration %zu\n", dbg_prefix.c_str(), ii);
+      if (m_queue.begin()->first > ceiling) {
+	fprintf(stdout, "%stop of queue %g is above ceiling %g\n",
+		dbg_prefix.c_str(), m_queue.begin()->first, ceiling);
+	break;
+      }
       dump(stdout, prefix.c_str());
       propagate();
     }
@@ -483,6 +491,16 @@ namespace dtrans {
       minkey = m_queue.begin()->first;
       maxkey = m_queue.rbegin()->first;
     }
+  }
+  
+  
+  double DistanceTransform::
+  getTopKey() const
+  {
+    if (m_queue.empty()) {
+      return infinity;
+    }
+    return m_queue.begin()->first;
   }
   
 }

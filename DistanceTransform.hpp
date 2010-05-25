@@ -105,15 +105,30 @@ namespace dtrans {
 	grid), then DistanceTransform::infinity is returned. */
     double get(size_t ix, size_t iy) const;
     
-    /** Propagate the distance transform until the entire grid has
-	been updated. Repeatedly calls propagate() until the queue is
-	empty. */
-    void compute();
+    /** Propagate the distance transform until a maximum distance has
+	been reached or the entire grid has been updated. Repeatedly
+	calls propagate() until the top of the queue lies above the
+	given ceiling, or the queue is empty.
+	
+	\note You can call compute() again with a higher ceiling and
+	it will keep on propagating where it left off. That way you
+	can compute the distance transform in several steps, or
+	adaptively change the ceiling depending on whether a certain
+	cell you are interested in has been reached yet.
+	
+	\note Simply pass dtrans::DistanceTransform::infinity as
+	ceiling if you want to make sure that the entire grid gets
+	computed.
+    */
+    void compute(/** distance up to which the transform should be
+		     propagated (say DistanceTransform::infinity for
+		     no limit) */
+		 double ceiling);
     
-    /** Debugging version of compute(): propagates the entire grid,
+    /** Debugging version of compute(). It does the same propagation,
 	and writes information about what it is doing at each
 	iteration. */
-    void compute(FILE * dbg_fp, std::string const & dbg_prefix);
+    void compute(double ceiling, FILE * dbg_fp, std::string const & dbg_prefix);
     
     /** Perform one cell expansion. If the queue is empty, it does
 	nothing.
@@ -121,6 +136,12 @@ namespace dtrans {
 	\return true if it computed something, false otherwise
 	(i.e. when the queue was empty). */
     bool propagate();
+    
+    /** Peek at the next-to-be propagated value.
+	
+	\return The key of the cell at the top of the queue, or
+	+infinity in case the queue is empty. */
+    double getTopKey() const;
     
     /** Compute some (simple) statistics over the current state of the
 	grid and its associated queue.

@@ -60,6 +60,7 @@ int main(int argc, char ** argv)
   int verbosity(0);
   int inthresh(0);
   float inscale(1.0/255);
+  float ceiling(std::numeric_limits<float>::max());
   for (int iopt(1); iopt < argc; ++iopt) {
     string const opt(argv[iopt]);
     if ("-i" == opt) {
@@ -96,6 +97,16 @@ int main(int argc, char ** argv)
 	errx(EXIT_FAILURE, "error reading inthresh \"%s\"", argv[iopt]);
       }
     }
+    else if ("-c" == opt) {
+      ++iopt;
+      if (iopt >= argc) {
+	errx(EXIT_FAILURE, "-c requires an argument (use -h for some help)");
+      }
+      if ((1 != sscanf(argv[iopt], "%f", &ceiling))
+	  || (inthresh < 0)) {
+	errx(EXIT_FAILURE, "error reading ceiling \"%s\"", argv[iopt]);
+      }
+    }
     else if ("-v" == opt) {
       ++verbosity;
     }
@@ -111,9 +122,10 @@ int main(int argc, char ** argv)
 	     "  -o  output file name  (\"-\" for stdout, which is the default)\n"
 	     "  -t  inthresh          threshold for distance initialization\n"
 	     "  -s  inscale           scale for distance initialization (default %f which is 1/255)\n"
+	     "  -c  outceil           ceiling for distance computation (default %g which is the max of float)\n"
 	     "  -v                    verbose mode (multiple times makes it more verbose)\n"
 	     "  -h                    this message\n",
-	     1.0/255);
+	     1.0/255, std::numeric_limits<float>::max());
       exit(EXIT_SUCCESS);
     }
     else {
@@ -157,13 +169,16 @@ int main(int argc, char ** argv)
       printf("propagating distance transform\n");
     }
     if (verbosity <= 2) {
-      dt->compute();
+      dt->compute(ceiling);
     }
     else {
       int step(0);
       printf("step %d\n", step);
       dt->dumpQueue(stdout, "  ");
       while (dt->propagate()) {
+	if (dt->getTopKey() > ceiling) {
+	  printf("ceiling reached\n");
+	}
 	++step;
 	printf("step %d\n", step);
 	dt->dumpQueue(stdout, "  ");
