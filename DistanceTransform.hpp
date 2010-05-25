@@ -149,13 +149,11 @@ namespace dtrans {
 	\note You can detect whether any valid stats are available by
 	checking that the returned max is higher than the returned
 	min. */
-    void stat(/** minimum distance value (including one-step
-		  lookahead) or +infinity in case no cell lies below
-		  infinity */
+    void stat(/** minimum distance value, or +infinity in case no cell
+		  lies below infinity */
 	      double & minval,
-	      /** maximum distance value (including one-step
-		  lookahead) or -infinity in case no cell lies below
-		  infinity */
+	      /** maximum distance value, or -infinity in case no cell
+		  lies below infinity */
 	      double & maxval,
 	      /** minimum queue key, or +infinity in case the queue is
 		  empty */
@@ -164,10 +162,9 @@ namespace dtrans {
 		  empty */
 	      double & maxkey) const;
     
-    /** Write the current state of the grid, the one-step-lookahead,
-	as well as the queue key map in a (more or less)
-	human-readable format to the given FILE stream. Each line gets
-	prefixed with a user-defined string. */
+    /** Write the current state of the grid and the queue key map in a
+	(more or less) human-readable format to the given FILE
+	stream. Each line gets prefixed with a user-defined string. */
     void dump(FILE * fp, std::string const & prefix) const;
     
     /** Write the current queue in a more or less human-readable
@@ -188,7 +185,6 @@ namespace dtrans {
     double const m_scale;
     double const m_scale2;
     std::vector<double> m_value; /**< distance map, negative values mean "fixed cell" */
-    std::vector<double> m_rhs;	 /**< one-step look-ahead map, negative values mean "fixed cell" */
     std::vector<double> m_key;	 /**< map of queue keys, a -1 means "not on queue" */
     queue_t m_queue;
     

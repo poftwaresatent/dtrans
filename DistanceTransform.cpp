@@ -52,7 +52,6 @@ namespace dtrans {
       m_scale(scale),
       m_scale2(pow(scale, 2)),
       m_value(m_ncells, infinity),
-      m_rhs(m_ncells, infinity),
       m_key(m_ncells, -1)
   {
   }
@@ -70,8 +69,7 @@ namespace dtrans {
       return false;
     }
     
-    m_value[cell] = infinity;	// will be set in propagate()
-    m_rhs[cell] = -dist;	// <=0 means "fixed"
+    m_value[cell] = -dist;	// <=0 means "fixed"
     requeue(cell);
     
     return true;
@@ -140,49 +138,20 @@ namespace dtrans {
   void DistanceTransform::
   requeue(size_t index)
   {
-    double const rhs(fabs(m_rhs[index]));
-    double const value(fabs(m_value[index]));
-    
-    // Special case of dtrans: we only propagate out once (unlike E*),
-    // so we can just ignore when the rhs is bigger than the value. In
-    // the full-blown implementation, the check below is for strict
-    // equality instead. Beware that this is implicitly assumed in
-    // other parts of this code.
-    if (rhs >= value) {
-      if (m_key[index] >= 0) {
-	if ( ! unqueue(index)) {
-	  std::cerr << "bug in requeue? could not unqueue consistent index\n";
-	}
-	m_key[index] = -1;
-      }
-      if (rhs != value) { // fix the data structures for the dtrans special case
-	m_rhs[index] = m_value[index]; // re-read from m_value to get the same sign, in case of fixed cells
-      }
-      return;
-    }
-    
-    // Otherwise, add or re-add the index, keeping track of its key
-    // and handling the special negative distances. Avoid re-adding an
-    // index under the same key.
-    double const key(std::min(value, rhs));
-    if (m_key[index] < 0) {
-      m_key[index] = key;
-      m_queue.insert(std::make_pair(key, index));
-    }
-    else if (key != m_key[index]) {
+    if (m_key[index] >= 0) {
       if ( ! unqueue(index)) {
-	std::cerr << "bug in requeue? could not unqueue inconsistent index\n";
+	std::cerr << "bug in requeue? could not unqueue\n";
       }
-      m_key[index] = key;
-      m_queue.insert(std::make_pair(key, index));
     }
+    m_key[index] = fabs(m_value[index]);
+    m_queue.insert(std::make_pair(m_key[index], index));
   }
   
   
   void DistanceTransform::
   update(size_t index)
   {
-    if ((m_rhs[index] <= 0) || (m_value[index] <= 0)) {	// fixed cell, skip it
+    if (m_value[index] <= 0) {	// fixed cell, skip it
       return;
     }
     
@@ -225,9 +194,8 @@ namespace dtrans {
       std::cerr << "bug in update? no valid propagators\n"
 		<< "  index: " << index << " (" << (index % m_dimx) << ", " << (index / m_dimx) << ")\n"
 		<< "  key:   " << m_key[index] << "\n"
-		<< "  rhs:   " << m_rhs[index] << "\n"
 		<< "  value: " << m_value[index] << "\n";
-      m_rhs[index] = infinity;
+      m_value[index] = infinity;
       requeue(index);
       return;
     }
@@ -251,15 +219,21 @@ namespace dtrans {
 			   + pow(secondary, 2)
 			   - m_scale2) / 2.0);
 	  double const root(pow(bb, 2) - 4.0 * cc);
-	  m_rhs[index] = (bb + sqrt(root)) / 2.0;
-	  requeue(index);
-	  return;
+	  double const rhs((bb + sqrt(root)) / 2.0);
+	  if (rhs < m_value[index]) {
+	    m_value[index] = rhs;
+	    requeue(index);
+	    return;
+	  }
 	}
       }
     }
     
-    m_rhs[index] = primary + m_scale;
-    requeue(index);
+    double const rhs(primary + m_scale);
+    if (rhs < m_value[index]) {
+      m_value[index] = rhs;
+      requeue(index);
+    }
   }
   
   
@@ -282,49 +256,19 @@ namespace dtrans {
     }
     
     size_t const index(pop());
-    
-    if (fabs(m_value[index]) > fabs(m_rhs[index])) {
-      m_value[index] = m_rhs[index];
-      if (index >= m_dimx) {	// south
-	update(index - m_dimx);
-      }
-      if (index < m_toprow) {	// north
-	update(index + m_dimx);
-      }
-      size_t const ix(index % m_dimx);
-      if (ix > 0) {		// west
-	update(index - 1);
-      }
-      if (ix < m_rightcol) {	// east
-	update(index + 1);
-      }      
+    if (index >= m_dimx) {	// south
+      update(index - m_dimx);
     }
-
-    else {
-      std::cerr << "bug in propagate? rhs >= value\n"
-		<< "  index: " << index << " (" << (index % m_dimx) << ", " << (index / m_dimx) << ")\n"
-		<< "  key:   " << m_key[index] << "\n"
-		<< "  rhs:   " << m_rhs[index] << "\n"
-		<< "  value: " << m_value[index] << "\n";
-      m_value[index] = infinity;
-      // In this case, E-Star would propagate to all downwind
-      // cells... but we do not track that information here in the
-      // DistanceTransform. Propagate to all neighbors instead: waste
-      // compute cycles that "never happens" though.
-      if (index >= m_dimx) {	// south
-	update(index - m_dimx);
-      }
-      if (index < m_toprow) {	// north
-	update(index + m_dimx);
-      }
-      size_t const ix(index % m_dimx);
-      if (ix > 0) {		// west
-	update(index - 1);
-      }
-      if (ix < m_rightcol) {	// east
-	update(index + 1);
-      }      
+    if (index < m_toprow) {	// north
+      update(index + m_dimx);
     }
+    size_t const ix(index % m_dimx);
+    if (ix > 0) {		// west
+      update(index - 1);
+    }
+    if (ix < m_rightcol) {	// east
+      update(index + 1);
+    }      
     
     return true;
   }
@@ -369,17 +313,6 @@ namespace dtrans {
       fprintf(fp, "\n");
     }
     
-    fprintf(fp, "%srhs\n", prefix.c_str());
-    iy = m_dimy;
-    while (iy > 0) {
-      --iy;
-      fprintf(fp, "%s  ", prefix.c_str());
-      for (size_t ix(0); ix < m_dimx; ++ix) {
-	pval(fp, m_rhs[index(ix, iy)]);
-      }
-      fprintf(fp, "\n");
-    }
-    
     fprintf(fp, "%svalue\n", prefix.c_str());
     iy = m_dimy;
     while (iy > 0) {
@@ -401,13 +334,11 @@ namespace dtrans {
       return;
     }
     
-    fprintf(fp, "%squeue: [key index rhs value]\n", prefix.c_str());
+    fprintf(fp, "%squeue: [key index value]\n", prefix.c_str());
     for (queue_cit iq(m_queue.begin()); iq != m_queue.end(); ++iq) {
       fprintf(fp, "%s  ", prefix.c_str());
       pval(fp, m_key[iq->second]);
       fprintf(fp, "  (%zu, %zu)", iq->second % m_dimx, iq->second / m_dimx);
-      fprintf(fp, "  ");
-      pval(fp, m_rhs[iq->second]);
       fprintf(fp, "  ");
       pval(fp, m_value[iq->second]);
       if (fabs(m_key[iq->second]) != iq->first) {
@@ -425,7 +356,7 @@ namespace dtrans {
       for (size_t ix(0); ix < m_dimx; ++ix) {
 	size_t const idx(index(ix, iy));
 	char const * cc(0);
-	bool const fixed((m_value[idx] <= 0) || (m_rhs[idx] <= 0));
+	bool const fixed(m_value[idx] <= 0);
 	if (m_key[idx] < 0) {
 	  if (fixed) {
 	    cc = "x";
@@ -470,15 +401,6 @@ namespace dtrans {
 	}
 	if (val < minval) {
 	  minval = val;
-	}
-      }
-      double const rhs(fabs(m_rhs[ii]));
-      if (rhs < infinity) {
-	if (rhs > maxval) {
-	  maxval = rhs;
-	}
-	if (rhs < minval) {
-	  minval = rhs;
 	}
       }
     }
