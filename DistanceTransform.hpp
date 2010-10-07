@@ -102,6 +102,20 @@ namespace dtrans {
     */
     bool set(size_t ix, size_t iy, double dist);
     
+    /** Set the propagation speed for a cell (given by its X and Y
+	index). These speeds are normalized to the range [0, 1], where
+	zero speed means that the cell is an obstacle and unit speed
+	means that it is fully in freespace. If you pass a speed
+	smaller than zero or larger than one, it is ignored and this
+	method returns false.
+	
+	\note You should set speeds before propagating the distance
+	transform. Contrary to E*, this code does not support changing
+	the speed on the fly.
+	
+	\return True if the given speed and indices were valid, false
+	otherwise.
+    */
     bool setSpeed(size_t ix, size_t iy, double speed);
     
     /** Get the distance of a cell.
