@@ -56,6 +56,7 @@ namespace dtrans {
       throw runtime_error("dtrans::PNGIO::read(" + filename + "): " + strerror(errno));
     }
     read(fp);
+    fclose(fp);
   }
   
   
