@@ -193,6 +193,7 @@ namespace dtrans {
       throw runtime_error("dtrans::PNGIO(" + filename + "): " + strerror(errno));
     }
     write(dt, fp, maxval);
+    fclose(fp);
   }
   
   
