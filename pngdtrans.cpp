@@ -57,6 +57,7 @@ int main(int argc, char ** argv)
   // parse options
   string infname("-");
   string outfname("-");
+  string speedfname("");
   int verbosity(0);
   int inthresh(0);
   float inscale(1.0/255);
@@ -76,6 +77,13 @@ int main(int argc, char ** argv)
 	errx(EXIT_FAILURE, "-o requires an argument (use -h for some help)");
       }
       outfname = argv[iopt];
+    }
+    else if ("-s" == opt) {
+      ++iopt;
+      if (iopt >= argc) {
+	errx(EXIT_FAILURE, "-s requires an argument (use -h for some help)");
+      }
+      speedfname = argv[iopt];
     }
     else if ("-t" == opt) {
       ++iopt;
@@ -117,12 +125,22 @@ int main(int argc, char ** argv)
       verbosity += 3;
     }
     else if ("-h" == opt) {
-      printf("usage [-i infile] [-o outfile] [-vh]\n"
-	     "  -i  input file name   (\"-\" for stdin, which is the default)\n"
-	     "  -o  output file name  (\"-\" for stdout, which is the default)\n"
+      printf("Distance transform from estar.sf.net -- Copyright (c) 2010 Roland Philippsen.\n"
+	     "Redistribution, use, and modification permitted under the new BSD license.\n"
+	     "\n"
+	     "usage [-i infile] [-o outfile] [-s speedfile] [-tscvh]\n"
+	     "\n"
+	     "  -i  input file name   name of the distance map initialization file\n"
+	     "                        (use `-' for stdin, which is the default)\n"
+	     "  -o  output file name  name of the file for writing the result\n"
+	     "                        (use `-' for stdout, which is the default)\n"
+	     "  -s  speed file name   name of the optional speed map file\n"
+	     "                        (default is to use speed = 1 everywhere)\n"
 	     "  -t  inthresh          threshold for distance initialization\n"
-	     "  -s  inscale           scale for distance initialization (default %f which is 1/255)\n"
-	     "  -c  outceil           ceiling for distance computation (default %g which is the max of float)\n"
+	     "  -s  inscale           scale for distance initialization\n"
+	     "                        (default scale %f = 1/255)\n"
+	     "  -c  outceil           ceiling for distance computation\n"
+	     "                        (default ceiling %g = max of float)\n"
 	     "  -v                    verbose mode (multiple times makes it more verbose)\n"
 	     "  -h                    this message\n",
 	     1.0/255, std::numeric_limits<float>::max());
@@ -139,7 +157,10 @@ int main(int argc, char ** argv)
   try {
 
     if (verbosity > 0) {
-      printf("reading from file %s\n", infname.c_str());
+      printf("Distance transform from estar.sf.net -- Copyright (c) 2010 Roland Philippsen.\n"
+	     "Redistribution, use, and modification permitted under the new BSD license.\n"
+	     "\n"
+	     "reading from file %s\n", infname.c_str());
     }
     if ("-" == infname) {
       pngio.read(stdin);
@@ -163,6 +184,18 @@ int main(int argc, char ** argv)
     }
     if (verbosity > 0) {
       printf("  input range %f to %f\n", minval, maxval);
+    }
+    
+    if ( ! speedfname.empty()) {
+      if (verbosity > 0) {
+	printf("loading speed map from %s\n", speedfname.c_str());
+      }
+      pngio.read(speedfname);
+      pngio.mapSpeed(*dt, 255, 1.0 / 255.0, false);
+      if (verbosity > 1) {
+	printf("  speed map input\n");
+	dt->dumpSpeed(stdout, "    ");
+      }
     }
     
     if (verbosity > 0) {

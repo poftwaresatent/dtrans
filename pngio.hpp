@@ -60,6 +60,9 @@ namespace dtrans {
     
     DistanceTransform * createTransform(png_byte thresh, double scale, bool invert)
       const throw(std::runtime_error);
+
+    void mapSpeed(DistanceTransform & dt, png_byte thresh, double scale, bool invert)
+      const throw(std::runtime_error);
     
   protected:
     png_structp read_;

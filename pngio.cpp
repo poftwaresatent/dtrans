@@ -32,6 +32,7 @@
 #include "pngio.hpp"
 #include "DistanceTransform.hpp"
 #include <limits>
+#include <sstream>
 #include <errno.h>
 #include <string.h>
 #include <math.h>
@@ -137,6 +138,56 @@ namespace dtrans {
     }
     
     return dt;
+  }
+  
+  
+  void PNGIO::
+  mapSpeed(DistanceTransform & dt, png_byte thresh, double scale, bool invert)
+    const throw(std::runtime_error)
+  {
+    if ((0 == width_) || (0 == height_)) {
+      throw runtime_error("dtrans::PNGIO::mapSpeed(): no data");
+    }
+    
+    if ((dt.dimX() != width_) || (dt.dimY() != height_)) {
+      std::ostringstream msg;
+      msg << "dtrans::PNGIO::mapSpeed(): dimension mismatch: PNG is " << width_ << "x" << height_
+	  << " but dtrans is " << dt.dimX() << "x" << dt.dimY();
+      throw runtime_error(msg.str());
+    }
+    
+    for (png_uint_32 irow(0); irow < height_; ++irow) {
+      png_bytep row(row_p_[irow]);
+      for (png_uint_32 icol(0); icol < width_; ++icol) {
+	double speed(0);
+	if (invert) {
+	  if (row[icol] >= thresh) {
+	    speed = (255 - row[icol]) * scale;
+	  }
+	}
+	else {
+	  if (row[icol] <= thresh) {
+	    speed = row[icol] * scale;
+	  }
+	}
+	if (speed < 0) {
+	  speed = 0;
+	}
+	else if (speed > 1) {
+	  speed = 1;
+	}
+	if ( ! dt.setSpeed(icol, height_ - irow - 1, speed)) {
+	  std::ostringstream msg;
+	  msg << "dtrans::PNGIO::mapSpeed(): setSpeed() failed\n"
+	      << "  params: thresh " << thresh << "  scale " << scale
+	      << (invert ? "  invert TRUE\n" : "  invert FALSE\n")
+	      << "  dimensions: " << width_ << "x" << height_ << "\n"
+	      << "  index: (" << icol << ", " << height_ - irow - 1 << ")\n"
+	      << "  computation:  pixel " << row[icol] << "  speed " << speed;
+	  throw runtime_error(msg.str());
+	}
+      }
+    }
   }
   
   

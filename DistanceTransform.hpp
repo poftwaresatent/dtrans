@@ -173,6 +173,11 @@ namespace dtrans {
 	stream. Each line gets prefixed with a user-defined string. */
     void dump(FILE * fp, std::string const & prefix) const;
     
+    /** Write the speed map in a (more or less) human-readable format
+	to the given FILE stream. Each line gets prefixed with a
+	user-defined string. */
+    void dumpSpeed(FILE * fp, std::string const & prefix) const;
+    
     /** Write the current queue in a more or less human-readable
 	format to the provided FILE stream, prefixing each line with
 	the given user-defined string. */

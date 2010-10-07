@@ -365,6 +365,33 @@ namespace dtrans {
   
   
   void DistanceTransform::
+  dumpSpeed(FILE * fp, std::string const & prefix) const
+  {
+    fprintf(fp, "%sspeed\n", prefix.c_str());
+    size_t iy(m_dimy);
+    while (iy > 0) {
+      --iy;
+      fprintf(fp, "%s  ", prefix.c_str());
+      for (size_t ix(0); ix < m_dimx; ++ix) {
+	pval(fp, m_scale / m_lsm_radius[index(ix, iy)]);
+      }
+      fprintf(fp, "\n");
+    }
+    
+    fprintf(fp, "%sLSM radius (scale/speed)\n", prefix.c_str());
+    iy = m_dimy;
+    while (iy > 0) {
+      --iy;
+      fprintf(fp, "%s  ", prefix.c_str());
+      for (size_t ix(0); ix < m_dimx; ++ix) {
+	pval(fp, m_lsm_radius[index(ix, iy)]);
+      }
+      fprintf(fp, "\n");
+    }
+  }
+  
+  
+  void DistanceTransform::
   dumpQueue(FILE * fp, std::string const & prefix) const
   {
     if (m_queue.empty()) {
