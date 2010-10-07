@@ -187,7 +187,8 @@ namespace dtrans {
       return;
     }
     
-    if (m_lsm_radius[index] >= infinity) { // obstacle, it'll always be at infinity
+    double const radius(m_lsm_radius[index]);
+    if (radius >= infinity) { // obstacle, it'll always be at infinity
       m_value[index] = -infinity;
       return;
     }
@@ -245,7 +246,6 @@ namespace dtrans {
     // Try to find a valid secondary for the interpolation: it needs
     // to lie along a different axis than the primary, and it needs to
     // be closer than m_scale/speed to it.
-    double const radius(m_lsm_radius[index]);
     double const r2(m_lsm_r2[index]); // cached square radius
     double const p2(pow(primary, 2));
     for (++ip; endp != ip; ++ip) {
