@@ -40,6 +40,7 @@
 namespace dtrans {
   
   double const DistanceTransform::infinity(std::numeric_limits<double>::max());
+  double const DistanceTransform::epsilon(1e-6);
   
   
   DistanceTransform::
@@ -50,8 +51,9 @@ namespace dtrans {
       m_toprow(m_ncells - dimx),
       m_rightcol(dimx - 1),
       m_scale(scale),
-      m_scale2(pow(scale, 2)),
       m_value(m_ncells, infinity),
+      m_lsm_radius(m_ncells, scale),
+      m_lsm_r2(m_ncells, pow(scale, 2)),
       m_key(m_ncells, -1)
   {
   }
@@ -71,6 +73,36 @@ namespace dtrans {
     
     m_value[cell] = -dist;	// <=0 means "fixed"
     requeue(cell);
+    
+    return true;
+  }
+  
+  
+  bool DistanceTransform::
+  setSpeed(size_t ix, size_t iy, double speed)
+  {
+    if ((speed < 0) || (speed > 1)) {
+      return false;
+    }
+    
+    size_t const cell(index(ix, iy));
+    if (cell >= m_ncells) {
+      return false;
+    }
+    
+    if (speed < epsilon) {	// obstacle
+      m_lsm_radius[cell] = infinity;
+      m_lsm_r2[cell] = infinity;
+    }
+    else {
+      m_lsm_radius[cell] = m_scale / speed;
+      m_lsm_r2[cell] = pow(m_lsm_radius[cell], 2);
+    }
+    
+    //// maybe extend this to a handle true replanning like E*, but
+    //// for now assume that the speed does not change during or after
+    //// propagation.
+    //    requeue(cell);
     
     return true;
   }
@@ -155,6 +187,11 @@ namespace dtrans {
       return;
     }
     
+    if (m_lsm_radius[index] >= infinity) { // obstacle, it'll always be at infinity
+      m_value[index] = -infinity;
+      return;
+    }
+    
     // Find all candidate propagators.
     queue_t props;
     if (index >= m_dimx) {	// try south
@@ -207,17 +244,18 @@ namespace dtrans {
     
     // Try to find a valid secondary for the interpolation: it needs
     // to lie along a different axis than the primary, and it needs to
-    // be closer than m_scale to it.
+    // be closer than m_scale/speed to it.
+    double const radius(m_lsm_radius[index]);
+    double const r2(m_lsm_r2[index]); // cached square radius
+    double const p2(pow(primary, 2));
     for (++ip; endp != ip; ++ip) {
       bool const valid(northsouth ^ (ix == (ip->second % m_dimx)));
       if (valid) {
 	double const secondary(ip->first);
-	if (m_scale > secondary - primary) {
+	if (radius > secondary - primary) {
 	  // Found it!
 	  double const bb(primary + secondary);
-	  double const cc((pow(primary, 2)
-			   + pow(secondary, 2)
-			   - m_scale2) / 2.0);
+	  double const cc((p2 + pow(secondary, 2) - r2) / 2.0);
 	  double const root(pow(bb, 2) - 4.0 * cc);
 	  double const rhs((bb + sqrt(root)) / 2.0);
 	  if (rhs < m_value[index]) {
@@ -229,7 +267,7 @@ namespace dtrans {
       }
     }
     
-    double const rhs(primary + m_scale);
+    double const rhs(primary + radius);
     if (rhs < m_value[index]) {
       m_value[index] = rhs;
       requeue(index);

@@ -54,6 +54,10 @@ namespace dtrans {
 	equivalent to infinity by the distance transform. */
     static double const infinity;
     
+    /** A small positive number that will be considered equivalent to
+	zero by the distance transform (only for speeds). */
+    static double const epsilon;
+    
     /** A two-dimensional grid of cells, each of which stores its
 	distance to some initial level set. Plus some auxiliary data
 	and methods to propagate the distance transform out from the
@@ -97,6 +101,8 @@ namespace dtrans {
 	(i.e. the given coordinates lie within the grid).
     */
     bool set(size_t ix, size_t iy, double dist);
+    
+    bool setSpeed(size_t ix, size_t iy, double speed);
     
     /** Get the distance of a cell.
 	
@@ -183,8 +189,9 @@ namespace dtrans {
     size_t const m_toprow;
     size_t const m_rightcol;
     double const m_scale;
-    double const m_scale2;
     std::vector<double> m_value; /**< distance map, negative values mean "fixed cell" */
+    std::vector<double> m_lsm_radius; /**< scale/speed map, infinity means "obstacle" */
+    std::vector<double> m_lsm_r2; /**< square thereof, to speed up computations */
     std::vector<double> m_key;	 /**< map of queue keys, a -1 means "not on queue" */
     queue_t m_queue;
     
