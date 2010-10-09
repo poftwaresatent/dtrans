@@ -490,4 +490,126 @@ namespace dtrans {
     return m_queue.begin()->first;
   }
   
+  
+  size_t DistanceTransform::
+  computeGradient(size_t ix, size_t iy,
+		  double & gx, double & gy) const
+  {
+    size_t const ixy(index(ix, iy));
+    double const height(fabs(m_value[ixy]));
+    
+    // Find all downwind neighbors.
+    queue_t dwn;
+    if (iy > 0) {		// try south
+      size_t const nbor(ixy - m_dimx);
+      double const nval(fabs(m_value[nbor]));
+      if (nval < height) {
+	dwn.insert(std::make_pair(nval, nbor));
+      }
+    }
+    if (ixy < m_toprow) {	// try north
+      size_t const nbor(ixy + m_dimx);
+      double const nval(fabs(m_value[nbor]));
+      if (nval < height) {
+	dwn.insert(std::make_pair(nval, nbor));
+      }
+    }
+    if (ix > 0) {		// try west
+      size_t const nbor(ixy - 1);
+      double const nval(fabs(m_value[nbor]));
+      if (nval < height) {
+	dwn.insert(std::make_pair(nval, nbor));
+      }
+    }
+    if (ix < m_rightcol) {	// try east
+      size_t const nbor(ixy + 1);
+      double const nval(fabs(m_value[nbor]));
+      if (nval < height) {
+	dwn.insert(std::make_pair(nval, nbor));
+      }
+    }
+    
+    // Compute gradient based on 0, 1, or 2 downwind neighbors.
+    
+    if (dwn.empty()) {
+      gx = 0;
+      gy = 0;
+      return 0;
+    }
+    
+    // Beware of confusions between x and y as well as + and -
+    // below. The idea is to use the height difference wrt the lowest
+    // neighbor for either gx or gy, depending on whether it neighbors
+    // the current cell along x or y. Then, if there is a second
+    // lowest neighbor that lies along the other coordinate axis, use
+    // that height difference to fill in the other gradient
+    // coordinate. Height differences must be counted positive when we
+    // go along positive x or y, and negative otherwise. By the checks
+    // above we know that all candidate neighbors lie below the
+    // current cell, so we can switch sign simply by choosing the
+    // order of terms in the substractions.
+    
+    queue_it idwn(dwn.begin());
+    queue_it endwn(dwn.end());
+    double const nval0(idwn->first);
+    size_t const nidx0(idwn->second);
+    bool const lowest_nbor_vertical(ix == (nidx0 % m_dimx));
+    
+    // Fill in gx or gy based on the direction to the lowest neighbor.
+    if (lowest_nbor_vertical) {
+      if (ixy < nidx0) {	// lowest neighbor is north: gx < 0
+	gx = nval0 - height;
+      }
+      else {			// else it's south and thus gx > 0
+	gx = height - nval0;
+      }
+    }
+    else {
+      if (ixy < nidx0) {	// lowest neighbor is west: gy < 0
+	gy = nval0 - height;
+      }
+      else {			// else it's east and thus gy > 0
+	gy = height - nval0;
+      }
+    }
+    
+    // Find a second lowest neighbor that lies along the other axis.
+    for (++idwn; endwn != idwn; ++idwn) {
+      size_t const nidx1(idwn->second);
+      if (lowest_nbor_vertical ^ (ix == (nidx1 % m_dimx))) {
+	double const nval1(idwn->first);
+	// Fill in "the other" gy or gx based on the axis of the
+	// second lowest neighbor.
+	if (lowest_nbor_vertical) {
+	  if (ixy < nidx1) { // SECOND lowest neighbor is EAST: gy < 0
+	    gy = nval1 - height;
+	  }
+	  else {		// else it's west and thus gy > 0
+	    gy = height - nval1;
+	  }
+	}
+	else {
+	  if (ixy < nidx1) {	// SECOND lowest neighbor is NORTH: gx < 0
+	    gx = nval1 - height;
+	  }
+	  else {			// else it's SOUTH and thus gx > 0
+	    gx = height - nval1;
+	  }
+	}
+	return 2;
+      }
+    }
+    
+    // We did not find a second_lowest neighbor that lies
+    // perpendicular to the lowest, so we have to set that
+    // contribution to zero.
+    if (lowest_nbor_vertical) {
+      gy = 0;
+    }
+    else {
+      gx = 0;
+    }
+    return 1;
+  }
+  
 }

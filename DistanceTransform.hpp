@@ -150,6 +150,31 @@ namespace dtrans {
 	iteration. */
     void compute(double ceiling, FILE * dbg_fp, std::string const & dbg_prefix);
     
+    /** Compute the unscaled upwind gradient at a given cell. Unscaled
+	means that it is not divided by the scale specified at
+	DistanceTransform construction time, and upwind means that
+	only neighbors lying below the value of the given cell are
+	taken into account. This makes for faster and more robust
+	computations.
+	
+	\note The resulting gradient (gx, gy) is placed in the
+	corresponding references passed as method arguments.
+	
+	\todo This method uses much of the same logic as update(), and
+	thus it would be convenient to compute and cache the gradient
+	from within there. That would speed up applications which need
+	the gradient in all (or most) cells anyway.
+	
+	\return The number of neighboring cells taken into account for
+	computing (gx, gx). If this number is zero, then the gradient
+	is likewise (0, 0) because the cell is either inside an
+	obstacle or a fixed cell that lies below its surrounding. Note
+	that obstacle lies with at least one non-obstacle neighbor
+	will generally result in a non-zero gradient.
+    */
+    size_t computeGradient(size_t ix, size_t iy,
+			   double & gx, double & gy) const;
+    
     /** Perform one cell expansion. If the queue is empty, it does
 	nothing.
 	
