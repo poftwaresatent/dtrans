@@ -45,8 +45,8 @@ using namespace dtrans;
 using namespace boost;
 using namespace std;
 
-static size_t dimx(100);
-static size_t dimy(100);
+static size_t dimx(300);
+static size_t dimy(300);
 static double scale(1);
 static shared_ptr<DistanceTransform> dt;
 
@@ -98,7 +98,7 @@ int main(int argc, char ** argv)
   }
   dt.reset(new DistanceTransform(dimx, dimy, scale));
   
-  dt->set(0, 0, 0);
+  dt->set(dimx/10, dimy/10, 0);
   dt->compute(DistanceTransform::infinity);
   
   if (verbosity > 1) {
@@ -129,6 +129,8 @@ protected:
   {
     // lazy init
     if (value.empty()) {
+      dimx = dt->dimX();
+      dimy = dt->dimY();
       value.resize(dt->nCells());
       double minval, maxval, minkey, maxkey;
       dt->stat(minval, maxval, minkey, maxkey);
@@ -156,11 +158,82 @@ protected:
     }
     
     // actually draw it
-    fl_draw_image_mono(&value[0], 0, 0, dt->dimX(), dt->dimY());
+    fl_draw_image_mono(&value[0], x(), y(), dimx, dimy);
   }
 
 private:
+  size_t dimx, dimy;
   vector<unsigned char> value;
+};
+
+
+class GradientImage : public Fl_Widget {
+public:
+  GradientImage(int xx, int yy, int width, int height, const char * label = 0)
+    : Fl_Widget(xx, yy, width, height, label),
+      gx(0),
+      gy(0),
+      count(0)
+  {
+  }
+  
+protected:
+  virtual void draw()
+  {
+    static int const skip(20);
+    
+    // lazy init
+    if (gx.empty()) {
+      dimx = dt->dimX();
+      dimy = dt->dimY();
+      gx.resize(dt->nCells());
+      gy.resize(dt->nCells());
+      count.resize(dt->nCells());
+      for (size_t ix(0); ix < dimx; ++ix) {
+	for (size_t iy(0); iy < dimy; ++iy) {
+	  size_t ixy(dt->index(ix, iy));
+	  double dgx, dgy;
+	  count[ixy] = dt->computeGradient(ix, iy, dgx, dgy);
+	  if (count[ixy] > 0) {
+	    double const len(sqrt(pow(dgx, 2) + pow(dgy, 2)));
+	    gx[ixy] = static_cast<int>(rint(dgx * skip / len));
+	    gy[ixy] = static_cast<int>(rint(dgy * skip / len));
+	  }
+	  else {
+	    gx[ixy] = 0;
+	    gy[ixy] = 0;
+	  }
+	}
+      }
+    }
+    
+    // actually draw it
+    fl_color(FL_BLACK);
+    fl_rectf(x(), y(), dimx-1, dimy-1);
+    for (int ix(0); ix < dimx; ix += skip) {
+      for (int iy(0); iy < dimy; iy += skip) {
+	size_t ixy(dt->index(ix, iy)); // beware of mixing cached sizes with possible new dt
+	if (count[ixy] > 0) {
+	  if (count[ixy] > 1) {
+	    fl_color(FL_WHITE);
+	  }
+	  else {
+	    fl_color(FL_YELLOW);
+	  }
+	  fl_line(x() + ix, y() + iy, x() + ix + gx[ixy], y() + iy + gy[ixy]);
+	}
+	else {
+	  fl_color(FL_RED);
+	  fl_point(x() + ix, y() + iy);
+	}
+      }
+    }
+  }
+
+private:
+  size_t dimx, dimy;
+  vector<int> gx, gy;
+  vector<size_t> count;
 };
 
 
@@ -171,7 +244,8 @@ public:
   {
     begin();
     value_image = new ValueImage(0, 0, dimx, dimy);
-    quit = new Fl_Button(100, 150, 70, 30, "&Quit");
+    gradient_image = new GradientImage(dimx + 50, 0, dimx, dimy);
+    quit = new Fl_Button(width / 2 - 50, dimy + 50, 100, 30, "&Quit");
     quit->callback(cb_quit, this);
     end();
     resizable(this);
@@ -179,6 +253,7 @@ public:
   }
   
   ValueImage * value_image;
+  GradientImage * gradient_image;
   Fl_Button * quit;
   
 private:
@@ -191,6 +266,6 @@ private:
 
 int gui()
 {
-  Window win(300, 200, "toto");
+  Window win(2 * dimx + 100, dimy + 100, "toto");
   return Fl::run();
 }

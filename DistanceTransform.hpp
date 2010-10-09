@@ -224,6 +224,7 @@ namespace dtrans {
     
     inline size_t const nCells() { return m_ncells; }
     inline std::vector<double> const & valueArray() { return m_value; }
+    inline size_t index(size_t ix, size_t iy) const { return ix + m_dimx * iy; }
     
   protected:
     typedef std::multimap<double, size_t> queue_t;
@@ -241,9 +242,6 @@ namespace dtrans {
     std::vector<double> m_lsm_r2; /**< square thereof, to speed up computations */
     std::vector<double> m_key;	 /**< map of queue keys, a -1 means "not on queue" */
     queue_t m_queue;
-    
-    inline size_t index(size_t ix, size_t iy) const
-    { return ix + m_dimx * iy; }
     
     bool unqueue(size_t index);
     void requeue(size_t index);
