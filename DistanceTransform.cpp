@@ -553,47 +553,47 @@ namespace dtrans {
     queue_it endwn(dwn.end());
     double const nval0(idwn->first);
     size_t const nidx0(idwn->second);
-    bool const lowest_nbor_vertical(ix == (nidx0 % m_dimx));
+    bool const lowest_nbor_along_y(ix == (nidx0 % m_dimx));
     
     // Fill in gx or gy based on the direction to the lowest neighbor.
-    if (lowest_nbor_vertical) {
-      if (ixy < nidx0) {	// lowest neighbor is north: gx < 0
-	gx = nval0 - height;
+    if (lowest_nbor_along_y) {
+      if (ixy < nidx0) {	// lowest neighbor at (ix, iy+1) so gy < 0
+	gy = nval0 - height;
       }
-      else {			// else it's south and thus gx > 0
-	gx = height - nval0;
+      else {			// else it's at (ix, iy-1) and thus gy > 0
+	gy = height - nval0;
       }
     }
     else {
-      if (ixy < nidx0) {	// lowest neighbor is west: gy < 0
-	gy = nval0 - height;
+      if (ixy < nidx0) {	// lowest neighbor is at (ix+1, iy) so gx < 0
+	gx = nval0 - height;
       }
-      else {			// else it's east and thus gy > 0
-	gy = height - nval0;
+      else {			// else it's at (ix-1, iy) and thus gx > 0
+	gx = height - nval0;
       }
     }
     
     // Find a second lowest neighbor that lies along the other axis.
     for (++idwn; endwn != idwn; ++idwn) {
       size_t const nidx1(idwn->second);
-      if (lowest_nbor_vertical ^ (ix == (nidx1 % m_dimx))) {
+      if (lowest_nbor_along_y ^ (ix == (nidx1 % m_dimx))) {
 	double const nval1(idwn->first);
-	// Fill in "the other" gy or gx based on the axis of the
+	// Fill in "the other" gx or gy based on the axis of the
 	// second lowest neighbor.
-	if (lowest_nbor_vertical) {
-	  if (ixy < nidx1) { // SECOND lowest neighbor is EAST: gy < 0
-	    gy = nval1 - height;
+	if (lowest_nbor_along_y) {
+	  if (ixy < nidx1) { // SECOND lowest neighbor is at (ix+1, iy) so gx < 0
+	    gx = nval1 - height;
 	  }
-	  else {		// else it's west and thus gy > 0
-	    gy = height - nval1;
+	  else {	    // else it's at (ix-1, iy) and thus gx > 0
+	    gx = height - nval1;
 	  }
 	}
 	else {
-	  if (ixy < nidx1) {	// SECOND lowest neighbor is NORTH: gx < 0
-	    gx = nval1 - height;
+	  if (ixy < nidx1) { // SECOND lowest neighbor is at (ix, iy+1) so gy < 0
+	    gy = nval1 - height;
 	  }
-	  else {			// else it's SOUTH and thus gx > 0
-	    gx = height - nval1;
+	  else {	    // else it's at (ix, iy-1) and thus gy > 0
+	    gy = height - nval1;
 	  }
 	}
 	return 2;
@@ -603,11 +603,11 @@ namespace dtrans {
     // We did not find a second_lowest neighbor that lies
     // perpendicular to the lowest, so we have to set that
     // contribution to zero.
-    if (lowest_nbor_vertical) {
-      gy = 0;
+    if (lowest_nbor_along_y) {
+      gx = 0;
     }
     else {
-      gx = 0;
+      gy = 0;
     }
     return 1;
   }
