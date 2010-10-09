@@ -34,9 +34,12 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Window.H>
 #include <FL/Fl_Button.H>
+#include <FL/fl_draw.H>
 #include <limits>
 #include <err.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 using namespace dtrans;
 using namespace boost;
@@ -113,12 +116,61 @@ void cleanup()
 }
 
 
+class ValueImage : public Fl_Widget {
+public:
+  ValueImage(int xx, int yy, int width, int height, const char * label = 0)
+    : Fl_Widget(xx, yy, width, height, label),
+      value(0)
+  {
+  }
+  
+protected:
+  virtual void draw()
+  {
+    // lazy init
+    if (value.empty()) {
+      value.resize(dt->nCells());
+      double minval, maxval, minkey, maxkey;
+      dt->stat(minval, maxval, minkey, maxkey);
+      // warnx("ValueImage::draw():  minval %g  maxval %g  minkey %g  maxkey %g",
+      // 	    minval, maxval, minkey, maxkey);
+      if (maxval <= minval) {
+	memset(&value[0], 0, value.size());
+      }
+      else {
+	vector<double>::const_iterator in(dt->valueArray().begin());
+	vector<unsigned char>::iterator out(value.begin());
+	vector<unsigned char>::iterator end(value.end());
+	for (/**/; out != end; ++in, ++out) {
+	  if (*in >= maxval) {
+	    *out = 255;
+	  }
+	  else if (*in <= 0) {
+	    *out = 0;
+	  }
+	  else {
+	    *out = static_cast<unsigned char>(rint(255 * (*in) / maxval));
+	  }
+	}
+      }
+    }
+    
+    // actually draw it
+    fl_draw_image_mono(&value[0], 0, 0, dt->dimX(), dt->dimY());
+  }
+
+private:
+  vector<unsigned char> value;
+};
+
+
 class Window : public Fl_Window {
 public:
   Window(int width, int height, const char * title)
     : Fl_Window(width, height, title)
   {
     begin();
+    value_image = new ValueImage(0, 0, dimx, dimy);
     quit = new Fl_Button(100, 150, 70, 30, "&Quit");
     quit->callback(cb_quit, this);
     end();
@@ -126,6 +178,7 @@ public:
     show();
   }
   
+  ValueImage * value_image;
   Fl_Button * quit;
   
 private:

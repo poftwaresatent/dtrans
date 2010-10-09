@@ -222,6 +222,9 @@ namespace dtrans {
 	the given user-defined string. */
     void dumpQueue(FILE * fp, std::string const & prefix) const;
     
+    inline size_t const nCells() { return m_ncells; }
+    inline std::vector<double> const & valueArray() { return m_value; }
+    
   protected:
     typedef std::multimap<double, size_t> queue_t;
     typedef queue_t::iterator queue_it;
