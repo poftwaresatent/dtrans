@@ -91,6 +91,12 @@ namespace dtrans {
 	\return The number of cells along the Y direction. */
     inline size_t dimY() const { return m_dimy; }
     
+    /** Scale of the cells.
+	
+	\return The length of one side of one cell.
+    */
+    inline double scale() const { return m_scale;}
+    
     /** Set a given cell (given by its X and Y index) to a certain
 	distance. Cells whose distance is set in this manner will be
 	used to seed the distance transform computation. The

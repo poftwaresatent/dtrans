@@ -6,7 +6,8 @@ LDFLAGS= -L/opt/local/lib -lpng -lm
 SRCS= DistanceTransform.cpp pngio.cpp
 OBJS= $(SRCS:.cpp=.o)
 
-all: test pngdtrans gdtrans
+all: test pngdtrans
+# gdtrans
 
 test: $(OBJS) test.o
 	$(CXX) -o test test.o $(OBJS) $(LDFLAGS)
