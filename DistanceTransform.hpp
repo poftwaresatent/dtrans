@@ -106,7 +106,7 @@ namespace dtrans {
 	\return True if the cell's distance value has been set
 	(i.e. the given coordinates lie within the grid).
     */
-    bool set(size_t ix, size_t iy, double dist);
+    bool setDist(size_t ix, size_t iy, double dist);
     
     /** Set the propagation speed for a cell (given by its X and Y
 	index). These speeds are normalized to the range [0, 1], where
@@ -129,7 +129,7 @@ namespace dtrans {
 	\return The distance value of a cell (given by its X and Y
 	index). If the cell is invalid (i.e. it lies outside the
 	grid), then DistanceTransform::infinity is returned. */
-    double get(size_t ix, size_t iy) const;
+    double getDist(size_t ix, size_t iy) const;
     
     /** Propagate the distance transform until a maximum distance has
 	been reached or the entire grid has been updated. Repeatedly
@@ -151,12 +151,28 @@ namespace dtrans {
 		     no limit) */
 		 double ceiling);
     
+    /** Reset all distance and gradient data and purge the queue, but
+	keep the speed map. This is useful if you want to use the
+	DistanceTransform as a global path planner and reuse a given
+	instance for planning to a new goal.
+    */
+    void resetDist();
+    
+    /** Reset the speed map, setting all speeds to 1 (one). If you are
+	using the DistanceTransform as global planner, this is the
+	same as clearing all obstacles from the map. This method does
+	not touch the distance or gradient, nor does it touch the
+	queue. So it really only makes sense to call it right before
+	or right after calling resetDist().
+    */
+    void resetSpeed();
+    
     /** Debugging version of compute(). It does the same propagation,
 	and writes information about what it is doing at each
 	iteration. */
     void compute(double ceiling, FILE * dbg_fp, std::string const & dbg_prefix);
     
-    /** Compute the unscaled upwind gradient at a given cell. Unscaled
+    /** Compute (or look up) the unscaled upwind gradient at a given cell. Unscaled
 	means that it is not divided by the scale specified at
 	DistanceTransform construction time, and upwind means that
 	only neighbors lying below the value of the given cell are
@@ -164,7 +180,9 @@ namespace dtrans {
 	computations.
 	
 	\note The resulting gradient (gx, gy) is placed in the
-	corresponding references passed as method arguments.
+	corresponding references passed as method arguments. This
+	method caches its results, so calling computeGradient()
+	repeatedly for a given index does not repeat the computation.
 	
 	\todo This method uses much of the same logic as update(), and
 	thus it would be convenient to compute and cache the gradient
@@ -249,6 +267,11 @@ namespace dtrans {
     std::vector<double> m_key;	 /**< map of queue keys, a -1 means "not on queue" */
     queue_t m_queue;
     
+    // gradient map and its neighbor count, to support caching
+    mutable std::vector<double> m_gx;
+    mutable std::vector<double> m_gy;
+    mutable std::vector<int> m_gn;
+
     bool unqueue(size_t index);
     void requeue(size_t index);
     void update(size_t index);

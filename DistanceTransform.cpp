@@ -53,14 +53,17 @@ namespace dtrans {
       m_scale(scale),
       m_value(m_ncells, infinity),
       m_lsm_radius(m_ncells, scale),
-      m_lsm_r2(m_ncells, pow(scale, 2)),
-      m_key(m_ncells, -1)
+      m_lsm_r2(m_ncells, pow(scale, 2.0)),
+      m_key(m_ncells, -1.0),
+      m_gx(m_ncells, 0.0),
+      m_gy(m_ncells, 0.0),
+      m_gn(m_ncells, -1)
   {
   }
   
   
   bool DistanceTransform::
-  set(size_t ix, size_t iy, double dist)
+  setDist(size_t ix, size_t iy, double dist)
   {
     if (dist < 0) {
       return false;
@@ -109,7 +112,7 @@ namespace dtrans {
   
   
   double DistanceTransform::
-  get(size_t ix, size_t iy) const
+  getDist(size_t ix, size_t iy) const
   {
     size_t const cell(index(ix, iy));
     if (cell >= m_ncells) {
@@ -496,6 +499,13 @@ namespace dtrans {
 		  double & gx, double & gy) const
   {
     size_t const ixy(index(ix, iy));
+    
+    if (m_gn[ixy] >= 0) {
+      gx = m_gx[ixy];
+      gy = m_gy[ixy];
+      return m_gn[ixy];
+    }
+    
     double const height(fabs(m_value[ixy]));
     
     // Find all downwind neighbors.
@@ -532,6 +542,9 @@ namespace dtrans {
     // Compute gradient based on 0, 1, or 2 downwind neighbors.
     
     if (dwn.empty()) {
+      m_gx[ixy] = 0;
+      m_gy[ixy] = 0;
+      m_gn[ixy] = 0;
       gx = 0;
       gy = 0;
       return 0;
@@ -596,6 +609,9 @@ namespace dtrans {
 	    gy = height - nval1;
 	  }
 	}
+	m_gx[ixy] = gx;
+	m_gy[ixy] = gy;
+	m_gn[ixy] = 2;
 	return 2;
       }
     }
@@ -609,7 +625,30 @@ namespace dtrans {
     else {
       gy = 0;
     }
+    m_gx[ixy] = gx;
+    m_gy[ixy] = gy;
+    m_gn[ixy] = 1;
     return 1;
+  }
+  
+  
+  void DistanceTransform::
+  resetDist()
+  {
+    m_value.assign(m_ncells, infinity);
+    m_key.assign(m_ncells, -1.0);
+    m_queue.clear();
+    m_gx.assign(m_ncells, 0.0);
+    m_gy.assign(m_ncells, 0.0);
+    m_gn.assign(m_ncells, -1);
+  }
+  
+  
+  void DistanceTransform::
+  resetSpeed()
+  {
+    m_lsm_radius.assign(m_ncells, m_scale);
+    m_lsm_r2.assign(m_ncells, pow(m_scale, 2.0));
   }
   
 }

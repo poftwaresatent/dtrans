@@ -42,15 +42,15 @@ int main(int argc, char ** argv)
   bool ok(true);
   dt.dump(stdout, "init  ");
   
-  if ( ! dt.set(0, 0, 1.0)) {
+  if ( ! dt.setDist(0, 0, 1.0)) {
     ok = false;
-    cout << "dt.set(0, 0, 1.0) failed\n";
+    cout << "dt.setDist(0, 0, 1.0) failed\n";
   }
   dt.dump(stdout, "test1  ");
   
-  if (dt.set(20, 10, 1.0)) {
+  if (dt.setDist(20, 10, 1.0)) {
     ok = false;
-    cout << "dt.set(20, 10, 1.0) should have failed\n";
+    cout << "dt.setDist(20, 10, 1.0) should have failed\n";
   }
   dt.dump(stdout, "test2  ");
   
@@ -64,9 +64,9 @@ int main(int argc, char ** argv)
     ++step;
   }
   
-  if (1.0 != dt.get(0, 0)) {
+  if (1.0 != dt.getDist(0, 0)) {
     ok = false;
-    cout << "dt.get(0, 0) should have returned 1.0 instead of " << dt.get(0, 0) << "\n";
+    cout << "dt.getDist(0, 0) should have returned 1.0 instead of " << dt.getDist(0, 0) << "\n";
   }
   dt.dump(stdout, "test4  ");
   

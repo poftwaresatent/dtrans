@@ -126,12 +126,12 @@ namespace dtrans {
       for (png_uint_32 icol(0); icol < width_; ++icol) {
 	if (invert) {
 	  if (row[icol] >= thresh) {
-	    dt->set(icol, height_ - irow - 1, (255 - row[icol]) * scale);
+	    dt->setDist(icol, height_ - irow - 1, (255 - row[icol]) * scale);
 	  }
 	}
 	else {
 	  if (row[icol] <= thresh) {
-	    dt->set(icol, height_ - irow - 1, row[icol] * scale);
+	    dt->setDist(icol, height_ - irow - 1, row[icol] * scale);
 	  }
 	}
       }
@@ -286,7 +286,7 @@ namespace dtrans {
 	png_bytep row(&data[irow * width]);
 	row_p[irow] = row;
 	for (png_uint_32 icol(0); icol < width; ++icol) {
-	  double val_in(dt.get(icol, height - irow - 1));
+	  double val_in(dt.getDist(icol, height - irow - 1));
 	  png_byte val_out;
 	  if (val_in >= maxval) {
 	    val_out = 255;
