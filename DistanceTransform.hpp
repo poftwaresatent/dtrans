@@ -182,7 +182,9 @@ namespace dtrans {
 	\note The resulting gradient (gx, gy) is placed in the
 	corresponding references passed as method arguments. This
 	method caches its results, so calling computeGradient()
-	repeatedly for a given index does not repeat the computation.
+	repeatedly for a given index does not repeat the
+	computation. If the given (ix, iy) index is invalid, the
+	returned gradient is zero.
 	
 	\todo This method uses much of the same logic as update(), and
 	thus it would be convenient to compute and cache the gradient
@@ -193,7 +195,7 @@ namespace dtrans {
 	computing (gx, gx). If this number is zero, then the gradient
 	is likewise (0, 0) because the cell is either inside an
 	obstacle or a fixed cell that lies below its surrounding. Note
-	that obstacle lies with at least one non-obstacle neighbor
+	that obstacle cells with at least one non-obstacle neighbor
 	will generally result in a non-zero gradient.
     */
     size_t computeGradient(size_t ix, size_t iy,
