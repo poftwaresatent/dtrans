@@ -98,7 +98,7 @@ int main(int argc, char ** argv)
   }
   dt.reset(new DistanceTransform(dimx, dimy, scale));
   
-  dt->set(dimx/10, dimy/10, 0);
+  dt->setDist(dimx/10, dimy/10, 0);
   dt->compute(DistanceTransform::infinity);
   
   if (verbosity > 1) {
