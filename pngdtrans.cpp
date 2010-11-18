@@ -95,10 +95,10 @@ int main(int argc, char ** argv)
 	errx(EXIT_FAILURE, "error reading inthresh \"%s\"", argv[iopt]);
       }
     }
-    else if ("-s" == opt) {
+    else if ("-S" == opt) {
       ++iopt;
       if (iopt >= argc) {
-	errx(EXIT_FAILURE, "-s requires an argument (use -h for some help)");
+	errx(EXIT_FAILURE, "-S requires an argument (use -h for some help)");
       }
       if ((1 != sscanf(argv[iopt], "%f", &inscale))
 	  || (inthresh < 0) || (inthresh > 255)) {
@@ -128,7 +128,7 @@ int main(int argc, char ** argv)
       printf("Distance transform from estar.sf.net -- Copyright (c) 2010 Roland Philippsen.\n"
 	     "Redistribution, use, and modification permitted under the new BSD license.\n"
 	     "\n"
-	     "usage [-i infile] [-o outfile] [-s speedfile] [-tscvh]\n"
+	     "usage [-i infile] [-o outfile] [-s speedfile] [-tScvh]\n"
 	     "\n"
 	     "  -i  input file name   name of the distance map initialization file\n"
 	     "                        (use `-' for stdin, which is the default)\n"
@@ -137,7 +137,7 @@ int main(int argc, char ** argv)
 	     "  -s  speed file name   name of the optional speed map file\n"
 	     "                        (default is to use speed = 1 everywhere)\n"
 	     "  -t  inthresh          threshold for distance initialization\n"
-	     "  -s  inscale           scale for distance initialization\n"
+	     "  -S  inscale           scale for distance initialization\n"
 	     "                        (default scale %f = 1/255)\n"
 	     "  -c  outceil           ceiling for distance computation\n"
 	     "                        (default ceiling %g = max of float)\n"
