@@ -81,3 +81,15 @@ This grayscale image of the distance transform is not necessarily the
 easiest output format for controlling e.g. a robot's motion. It is
 better to use the library version of dtrans and rely on the
 dtrans::DistanceTransform::computeGradient() method.
+
+There also is a stub of a graphical example, which gets built if you
+have FLTK and edit the Makefile accordingly. Right now it does not do
+much, just compute the distance transform in an empty square
+environment and display the gradient directions:
+
+ $ ./gdtrans
+
+Maybe by the time you read this it'll be possible to read PNG input
+files into gdtrans, and to trace robot paths from any point in the
+environment. Or maybe you feel like implementing that and sending me a
+patch? That would be awesome!
