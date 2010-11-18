@@ -44,8 +44,11 @@ namespace dtrans {
   
   
   /**
-     Compute the distance to some initial level set throughout a
-     two-dimensional grid.
+     A DistanceTransform object computes the distance to some initial
+     level set throughout a two-dimensional grid. You can use it
+     e.g. for determining the distance from any location to the
+     nearest obstacle, or to compute a navigation function that
+     encodes cost-optimal paths from any location to some goal set.
    */  
   class DistanceTransform
   {
@@ -185,11 +188,6 @@ namespace dtrans {
 	repeatedly for a given index does not repeat the
 	computation. If the given (ix, iy) index is invalid, the
 	returned gradient is zero.
-	
-	\todo This method uses much of the same logic as update(), and
-	thus it would be convenient to compute and cache the gradient
-	from within there. That would speed up applications which need
-	the gradient in all (or most) cells anyway.
 	
 	\return The number of neighboring cells taken into account for
 	computing (gx, gx). If this number is zero, then the gradient

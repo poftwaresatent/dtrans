@@ -1,0 +1,38 @@
+/**
+   \mainpage
+   
+   The dtrans is a lightweight spin-off from the E* project
+   http://estar.sourceforge.net/. It contains the DistanceTransform
+   class and some related utilities which allow you to use the
+   interpolation mechanism from E* in order to compute continuous
+   distances on 2D grids.
+   
+   \section README
+   
+   \verbinclude README
+   
+   \section LICENSE
+   
+   \verbinclude LICENSE.BSD
+   
+   \section References
+   
+   [1] Roland Philippsen. "Motion Planning and Obstacle Avoidance for
+   Mobile Robots in Highly Cluttered Dynamic
+   Environments". Ph.D. Dissertation, Ecole Polytechnique Federale de
+   Lausanne, 2004. (Available online
+   http://library.epfl.ch/theses/?nr=3146)
+   
+   [2] Roland Philippsen and Roland Siegwart. "An Interpolated Dynamic
+   Navigation Function". Proceedings of the IEEE International
+   Conference on Robotics and Automation (ICRA), 2005. (Available
+   online
+   http://estar.sourceforge.net/papers/philippsen_siegwart_icra2005_paper.pdf)
+   
+   [3] Roland Philippsen. "A Light Formulation of the E* Interpolated
+   Path Replanner". Technical Report, Autonomous Systems Lab, Ecole
+   Polytechnique F&eacute;d&eacute;rale de Lausanne, 2006. (Available
+   online
+   http://estar.sourceforge.net/papers/philippsen--estar-TR06.pdf)
+   
+*/

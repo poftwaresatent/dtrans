@@ -40,27 +40,95 @@ namespace dtrans {
 
   class DistanceTransform;
   
-  
+
+  /**
+     Utility for reading and writing PNG files that encode distance
+     transform information. Only 8-bit grayscale PNGs are currently
+     supported.
+  */
   class PNGIO
   {
   public:
     virtual ~PNGIO();
     
+    /** Read a PNG file given as a path. If successful, this PNGIO
+	instance can subsequently be used for createTransform() or
+	mapSpeed(). An exception is thrown in case the file does not
+	exist or is not an 8-bit grayscale PNG file.
+    */
     void read(std::string const & filename) throw(std::runtime_error);
+    
+    /** Read a PNG file given as an open file pointer. If successful,
+	this PNGIO instance can subsequently be used for
+	createTransform() or mapSpeed(). An exception is thrown in
+	case the file does not exist or is not an 8-bit grayscale PNG
+	file.
+    */
     void read(FILE * fp) throw(std::runtime_error);
     
+    /** Write the data from DistanceTransform::getDist() as an 8-bit
+	grayscale PNG file. Distances are scaled such that maxval gets
+	encoded as 255. Throws an exception if something goes wrong,
+	e.g. if the given filename could not be opened for writing. */
     static void write(DistanceTransform const & dt,
 		      std::string const & filename, double maxval) throw(std::runtime_error);
     
+    /** Write the data from DistanceTransform::getDist() as an 8-bit
+	grayscale PNG file to an already open file pointer. Distances
+	are scaled such that maxval gets encoded as 255. Throws an
+	exception if something goes wrong. */
     static void write(DistanceTransform const & dt,
 		      FILE * fp, double maxval) throw(std::runtime_error);
     
+    /** \return The maximum value of the data, after a successful
+	read().
+     */
     png_byte maxVal() const;
+    
+    /** \return The minimum value of the data, after a successful
+	read().
+     */
     png_byte minVal() const;
     
-    DistanceTransform * createTransform(png_byte thresh, double scale, bool invert)
+    /** Create a DistanceTransform based on data previously
+	read(). You can control how the input range (8-bit grayscale
+	values, i.e. 0..255) gets translated to initial distances
+	(passed to DistanceTransform::setDist()) by adjusting the
+	thresh, scale, and invert parameters.
+	
+	\return A freshly allocated and initialized DistanceTransform
+	object. Throws an exception if something goes wrong.
+    */
+    DistanceTransform *
+    createTransform(/** The maximum grayscale value for which
+			setDist() will be called. If invert=true, then
+			thresh is the minimum such value. */
+		    png_byte thresh,
+		    /** The scale applied to the grayscale
+			values. E.g. if scale=0.17 the a grayscale
+			value of 1 will result in a call to
+			setDist(..., 0.17). If invert=true, then the
+			we use scale*(255-gray) instead. */
+		    double scale,
+		    /** Whether to invert the grayscale-to-distance
+			scale. Use this if your input image uses white
+			(gray=255) to denote the goal set. */
+		    bool invert)
       const throw(std::runtime_error);
-
+    
+    /** Map previously read() data to
+	DistanceTransform::setSpeed(). This allows you to read-in
+	obstacle information from an 8-bit grayscale PNG file. The
+	meaning of thresh, scale, and invert is the same as for
+	createTransform(), but note that the result of the scaling
+	gets clipped to the range 0..1 (where 0 means obstacle and 1
+	means freespace, and intermediate values encode e.g. how risky
+	it is to traverse a given cell).
+	
+	Throws an exception if something goes wrong, e.g. if the
+	dimensions of the given DistanceTransform don't match the PNG
+	file that was last read().
+    */
     void mapSpeed(DistanceTransform & dt, png_byte thresh, double scale, bool invert)
       const throw(std::runtime_error);
     
