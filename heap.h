@@ -68,12 +68,12 @@ typedef struct heap_s {
    Utility macro for reading the length (actual number of elements)
    of the heap.
 */
-#define HEAP_LENGTH (heap) ((heap)->length)
+#define HEAP_LENGTH(heap) ((heap)->length)
 
 /**
    Utility macro for determining whether a heap is empty.
 */
-#define HEAP_EMPTY (heap) ((heap)->length == 0)
+#define HEAP_EMPTY(heap) ((heap)->length == 0)
 
 /**
    Utility macro for peeking at the key of the element that is at top
@@ -81,7 +81,7 @@ typedef struct heap_s {
    order to keep arithmetic a bit easier, so this will return the key
    at index one.
 */
-#define HEAP_PEEK_KEY (heap) ((heap)->key[1])
+#define HEAP_PEEK_KEY(heap) ((heap)->key[1])
 
 /**
    Utility macro for peeking at the value of the element that is at top
@@ -89,7 +89,7 @@ typedef struct heap_s {
    order to keep arithmetic a bit easier, so this will return the value
    at index one.
 */
-#define HEAP_PEEK_VALUE (heap) ((heap)->value[1])
+#define HEAP_PEEK_VALUE(heap) ((heap)->value[1])
 
 
 /**
@@ -107,18 +107,40 @@ double heap_keycmp_less (double lhs, double rhs);
    function. You can just use maxheap_create or minheap_create instead
    of worrying about which internal key comparison function you have
    to pick for which kind of heap.
+   
+   \return A freshly created heap, or NULL in case of failure (which
+   stems from calloc, so you can use errno to get a system error
+   message).
 */
 heap_t * heap_create (size_t capacity, heap_keycmp_t keycmp);
 
 /**
+   Create a clone of a given heap. The capacity of the clone will be
+   exactly the length of the original.
+   
+   \return A freshly allocated clone with all keys and data properly
+   copied, or NULL on failure (in which case you can use errno to see
+   what it's about, probably out of memory from calloc).
+*/
+heap_t * heap_clone (heap_t * heap);
+
+/**
    Create and properly initialize a max heap. It is an error to pass
    capacity=0, that'll cause infinite loops.
+   
+   \return A freshly created max heap, or NULL in case of failure
+   (which stems from calloc, so you can use errno to get a system
+   error message).
 */
 heap_t * maxheap_create (size_t capacity);
 
 /**
    Create and properly initialize a min heap. It is an error to pass
    capacity=0, that'll cause infinite loops.
+   
+   \return A freshly created min heap, or NULL in case of failure
+   (which stems from calloc, so you can use errno to get a system
+   error message).
 */
 heap_t * minheap_create (size_t capacity);
 
@@ -134,6 +156,9 @@ void heap_destroy (heap_t * heap);
    triggered when you insert an element into a heap that is full. At
    the time of writing, a heap will never deallocate any of its memory
    even if it shrinks.
+
+   \return 0 on success, -1 on failure (which stems from realloc, so
+   you can use errno to get a system error message).
 */
 int heap_grow (heap_t * heap);
 
@@ -151,8 +176,41 @@ void heap_bubble_up (heap_t * heap, size_t index);
    Insert a given value into the heap at a position determined by the
    given key. The position depends on whether you have create a min
    heap or a max heap.
+   
+   \return 0 on success, or -1 on failure (which stems from a failed
+   heap_grow, thus from realloc, and thus you can use errno).
 */
 int heap_insert (heap_t * heap, double key, const void * value);
+
+/**
+   Internal (recursive) function to find an element with a given key
+   and value in the subtree rooted at the given location. Used by
+   heap_change_key.
+   
+   \return The index of the sought element, or zero in case of failure
+   (remember, the array storage starts at index one, so a zero can be
+   used to signify "not found" in this implementation).
+*/
+size_t heap_find_element (heap_t * heap, double key, const void * value, size_t root);
+
+/**
+   Modify the key of an element already stored in the heap. You need
+   to specify the old key under which the value is currently stored,
+   in order to allow finding the element. After the element is found
+   and the key changed, the appropriate up or down bubble operation is
+   performed to restore the heap property.
+   
+   \note Both the old_key and the value have to match, and the
+   implementation uses a straightforward pointer comparison on the
+   value. So beware of heaps that store strings or similar possibly
+   identical duplicates for the value.
+   
+   \return 0 on success, -1 if the given key-value pair is not in the
+   heap, and -2 if there is some problem detecting whether this is a
+   max heap or a min heap. The latter is either a bug, or you have not
+   used maxheap_create or minheap_create to create this heap.
+*/
+int heap_change_key (heap_t * heap, double old_key, double new_key, const void * value);
 
 /**
    Internal function for adjusting the heap property after a removal.
@@ -166,6 +224,10 @@ void heap_bubble_down (heap_t * heap, size_t index);
    HEAP_PEEK_VALUE instead. Depending on whether you have create a min
    heap or a max heap, the topmost element is either the one with the
    smallest key (min heap), or with the biggest key (max heap).
+   
+   \return A pointer to the value that used to be on top, or NULL in
+   case the heap was empty (or maybe you had actually put a zero on
+   there somewhere).
 */
 void * heap_pop (heap_t * heap);
 

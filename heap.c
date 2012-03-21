@@ -30,6 +30,7 @@
  */
 
 #include "heap.h"
+#include <string.h>
 
 
 double heap_keycmp_more (double lhs, double rhs)
@@ -71,6 +72,19 @@ heap_t * heap_create (size_t capacity, heap_keycmp_t keycmp)
 }
 
 
+heap_t * heap_clone (heap_t * heap)
+{
+  heap_t * clone;
+  if ( ! (clone = heap_create (heap->length, heap->keycmp))) {
+    return NULL;
+  }
+  clone->length = heap->length;
+  memcpy (clone->key + 1, heap->key + 1, heap->length * sizeof(double));
+  memcpy (clone->value + 1, heap->value + 1, heap->length * sizeof(void*));
+  return clone;
+}
+
+
 heap_t * maxheap_create (size_t capacity)
 {
   return heap_create (capacity, heap_keycmp_more);
@@ -96,7 +110,7 @@ int heap_grow (heap_t * heap)
   double * kk;
   void * vv;
   size_t cc;
-  cc = heap->capacity * 2 + 1;	/* one extra element at the beginning to simplify arithmetic */
+  cc = heap->capacity * 2 + 1;	/* one extra element at the beginning... */
   if ( ! (kk = realloc (heap->key, cc * sizeof(double)))) {
     return -1;
   }
@@ -144,11 +158,80 @@ int heap_insert (heap_t * heap, double key, const void * value)
       return -1;
     }
   }
-  ++heap->length; /* remember, arrays start at index 1 (instead of zero) to simplify arithmetic */
+  ++heap->length; /* remember, arrays start at index 1 to simplify arithmetic */
   heap->key[heap->length] = key;
   heap->value[heap->length] = value;
   heap_bubble_up (heap, heap->length);
   return 0;
+}
+
+
+size_t heap_find_element (heap_t * heap, double key, const void * value, size_t root)
+{
+  size_t subtree, guess;
+  
+  if (root > heap->length) {
+    return 0;			/* out of bounds */
+  }
+  
+  if (heap->keycmp(heap->key[root], key) < 0.0) {
+    return 0;			/* key cannot be in this subtree due to heap property */
+  }
+  
+  if ((heap->key[root] == key)
+      && (heap->value[root] == value))
+    {
+      return root;		/* found */
+    }
+  
+  subtree = 2 * root;
+  guess = heap_find_element (heap, key, value, subtree);
+  if (0 != guess) {
+    return guess;		/* found in left subtree */
+  }
+  
+  ++subtree;
+  return heap_find_element (heap, key, value, subtree); /* try right subtree */
+}
+
+
+int heap_change_key (heap_t * heap, double old_key, double new_key, const void * value)
+{
+  size_t index;
+  
+  index = heap_find_element (heap, old_key, value, 1);
+  if (0 == index) {
+    return -1;			/* no such element */
+  }
+  
+  if (heap->keycmp == heap_keycmp_more) {
+    /* this is a max heap */
+    heap->key[index] = new_key;
+    if (new_key > old_key) {
+      heap_bubble_up (heap, index);
+    }
+    else if (new_key < old_key) {
+      heap_bubble_down (heap, index);
+    }
+    /* else no change */
+    return 0;
+  }
+  
+  else if (heap->keycmp == heap_keycmp_less) {
+    /* this is a min heap */
+    heap->key[index] = new_key;
+    if (new_key < old_key) {
+      heap_bubble_up (heap, index);
+    }
+    else if (new_key > old_key) {
+      heap_bubble_down (heap, index);
+    }
+    /* else no change */
+    return 0;
+  }
+  
+  /* else this is an unsopprted kind of heap */
+  return -2;
 }
 
 

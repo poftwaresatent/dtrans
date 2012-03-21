@@ -36,3 +36,6 @@ gdtrans.o: gdtrans.cpp
 
 clean:
 	rm -f *~ *.o test pngdtrans gdtrans
+
+heap.o: heap.h
+heap_test.o: heap.h

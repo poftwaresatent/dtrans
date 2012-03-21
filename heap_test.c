@@ -62,7 +62,7 @@ static heap_t * test_create (test_input_t * data, heap_t * (*creator)(size_t))
   fprintf (stderr, "there seem to be %zu data items\n", ii);
   
   capacity = ii / 2 + 1;
-  fprintf (stderr, "creating max heap with capacity %zu\n", capacity);
+  fprintf (stderr, "creating heap with capacity %zu\n", capacity);
   heap = creator (capacity);
   if ( ! heap) {
     err (EXIT_FAILURE, "maxheap_create");
@@ -81,17 +81,17 @@ static heap_t * test_create (test_input_t * data, heap_t * (*creator)(size_t))
 
 static void test_enumerate (heap_t * heap)
 {
-  fprintf (stderr, "at the beginning of test_enumerate\n");
-  test_dump (heap, "  ");
-  while (heap->length > 0) {
-    const char * blah = heap_pop (heap);
-    fprintf (stderr, "  %s\n", blah);
-    test_dump (heap, "    ");
+  heap_t * clone;
+  clone = heap_clone (heap);
+  while (clone->length > 0) {
+    fprintf (stderr, "% 5.2f\t%s\n",
+	     HEAP_PEEK_KEY (clone), (char*) HEAP_PEEK_VALUE (clone));
+    heap_pop (clone);
   }
 }
 
 
-int main (int argc, char ** argv)
+static int suite (heap_t * (*creator)(size_t))
 {
   static test_input_t data[] = {
     {  12.0, "hello world" },
@@ -101,15 +101,58 @@ int main (int argc, char ** argv)
   
   heap_t * heap;
   
-  fprintf (stderr, "\nlet's try max heap first...\n\n");
-  heap = test_create (data, maxheap_create);
+  if (NULL == (heap = test_create (data, creator))) {
+    fprintf (stderr, "OOPS: creation failed\n");
+    return -1;
+  }
+  fprintf (stderr, "\nafter creation:\n");
   test_enumerate (heap);
+  
+  fprintf (stderr, "\nlet's modify some existing and bogus elements...\n");
+  if (0 != heap_change_key (heap, data[0].key, -22.0, data[0].value)) {
+    fprintf (stderr, "OOPS: that should have succeeded!\n");
+    return -2;
+  }
+  if (0 == heap_change_key (heap, 888.999, -1.0, data[0].value)) {
+    fprintf (stderr, "OOPS: invalid old_key should have failed!\n");
+    return -3;
+  }
+  if (0 == heap_change_key (heap, data[1].key, 22000.3, "blah")) {
+    fprintf (stderr, "OOPS: invalid value have failed!\n");
+    return -4;
+  }
+  fprintf (stderr, "\nafter changing a key:\n");
+  test_enumerate (heap);
+  
   heap_destroy (heap);
+  return 0;
+}
+
+
+int main (int argc, char ** argv)
+{
+  size_t nfail;
+  nfail = 0;
+  
+  fprintf (stderr, "\nlet's try max heap first...\n\n");
+  if (0 != suite (maxheap_create)) {
+    ++nfail;
+  }
   
   fprintf (stderr, "\nand how about min heap?\n\n");
-  heap = test_create (data, minheap_create);
-  test_enumerate (heap);
-  heap_destroy (heap);
+  if (0 != suite (minheap_create)) {
+    ++nfail;
+  }
   
+  if (nfail == 1) {
+    fprintf (stderr, "\nOOPS there was a failure\n");
+    return 1;
+  }
+  else if (nfail != 0) {
+    fprintf (stderr, "\nOOPS there were %zu failures\n", nfail);
+    return 1;
+  }
+  
+  fprintf (stderr, "\nall tests passed\n");
   return 0;
 }
