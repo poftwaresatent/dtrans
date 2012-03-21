@@ -8,7 +8,7 @@ LDFLAGS= -L/opt/local/lib -lpng -lm
 SRCS= DistanceTransform.cpp pngio.cpp
 OBJS= $(SRCS:.cpp=.o)
 
-all: test pngdtrans heap_test
+all: test pngdtrans heap_test usdtrans
 
 # Building gdtrans is painful on OS X, at least on my MacBook, because
 # the macports fltk expects arch=i386 but libpng wants arch=x86_64 and
@@ -18,6 +18,9 @@ all: test pngdtrans heap_test
 # CPPFLAGS and LDFLAGS, but it shouldn't hurt to keep them.
 #
 # all: test pngdtrans gdtrans
+
+usdtrans: usdtrans.o heap.o
+	$(CC) -o usdtrans usdtrans.o heap.o
 
 heap_test: heap.o heap_test.o
 	$(CC) -o heap_test heap_test.o heap.o

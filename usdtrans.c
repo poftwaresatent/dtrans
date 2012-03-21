@@ -29,6 +29,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "heap.h"
+#include <math.h>
+
+
 #define USDTRANS_INFINITY 1.0e9
 
 #define USDTRANS_FLAG_FIXED          0x01
@@ -42,7 +46,8 @@ typedef struct usdtrans_s {
   int * flags;
   heap_t * queue_positive;
   heap_t * queue_negative;
-  size_t dimx, dimy;
+  heap_t * propagators;
+  size_t dimx, dimy, ncells, toprow, rightcol;
 } usdtrans_t;
 
 
@@ -68,15 +73,23 @@ usdtrans_t * usdtrans_create (size_t dimx, size_t dimy)
   if ( ! (usd->queue_negative = minheap_create (dimx + dimy))) {
     goto fail_qn;
   }
+  if ( ! (usd->propagators = minheap_create (4))) {
+    goto fail_props;
+  }
   
   usd->dimx = dimx;
   usd->dimy = dimy;
+  usd->ncells = ncells;
+  usd->toprow = ncells - dimx;
+  usd->rightcol = dimx - 1;
   for (ii = 0; ii < ncells; ++ii) {
     usd->dist[ii] = USDTRANS_INFINITY;
     usd->flags[ii] = USDTRANS_FLAG_UNKNOWN;
   }
   return usd;
   
+ fail_props:
+  heap_destroy (usd->queue_negative);
  fail_qn:
   heap_destroy (usd->queue_positive);
  fail_qp:
@@ -92,6 +105,7 @@ usdtrans_t * usdtrans_create (size_t dimx, size_t dimy)
 
 void usdtrans_destroy (usdtrans_t * usd)
 {
+  heap_destroy (usd->propagators);
   heap_destroy (usd->queue_negative);
   heap_destroy (usd->queue_positive);
   free (usd->flags);
@@ -100,37 +114,39 @@ void usdtrans_destroy (usdtrans_t * usd)
 }
 
 
-void usdtrans_requeue (usdtrans_t * usd, size_t index, double dist)
+void usdtrans_requeue (usdtrans_t * usd, size_t index, double new_dist)
 {
-  if (usd->flags[index] & USDTRANS_FLAGS_QUEUE_POSITIVE) {
-    heap_change_key (usd->queue_positive, dist, index);
+  if (usd->flags[index] & USDTRANS_FLAG_QUEUE_POSITIVE) {
+    heap_change_key (usd->queue_positive, usd->dist[index], new_dist, (void*) index);
   }
   else {
-    usd->flags[index] |= USDTRANS_FLAGS_QUEUE_POSITIVE;
-    heap_insert (usd->queue_positive, dist, index);
+    usd->flags[index] &= ~USDTRANS_FLAG_UNKNOWN;
+    usd->flags[index] |= USDTRANS_FLAG_QUEUE_POSITIVE;
+    heap_insert (usd->queue_positive, new_dist, (void*) index);
   }
   
-  if (usd->flags[index] & USDTRANS_FLAGS_QUEUE_NEGATIVE) {
-    heap_change_key (usd->queue_negative, dist, index);
+  if (usd->flags[index] & USDTRANS_FLAG_QUEUE_NEGATIVE) {
+    heap_change_key (usd->queue_negative, usd->dist[index], new_dist, (void*) index);
   }
   else {
-    usd->flags[index] |= USDTRANS_FLAGS_QUEUE_NEGATIVE;
-    heap_insert (usd->queue_negative, dist, index);
+    usd->flags[index] &= ~USDTRANS_FLAG_UNKNOWN;
+    usd->flags[index] |= USDTRANS_FLAG_QUEUE_NEGATIVE;
+    heap_insert (usd->queue_negative, new_dist, (void*) index);
   }
+  
+  usd->dist[index] = new_dist;
 }
 
 
 void usdtrans_seed (usdtrans_t * usd, size_t index, double dist)
 {
-  usd->dist[index] = dist;
-  usd->flags[index] = USDTRANS_FLAG_FIXED;
+  usd->flags[index] |= USDTRANS_FLAG_FIXED;
   usdtrans_requeue (usd, index, dist);
 }
 
 
 int usdtrans_seed2 (usdtrans_t * usd, size_t ix, size_t iy, double dist)
 {
-  size_t index;
   if (ix >= usd->dimx) {
     return -1;
   }
@@ -151,7 +167,6 @@ void usdtrans_partition (usdtrans_t * usd, size_t index, double dist)
 
 int usdtrans_partition2 (usdtrans_t * usd, size_t ix, size_t iy, double dist)
 {
-  size_t index;
   if (ix >= usd->dimx) {
     return -1;
   }
@@ -163,11 +178,10 @@ int usdtrans_partition2 (usdtrans_t * usd, size_t ix, size_t iy, double dist)
 }
 
 
-#define usdtrans_get (usd, index) ((usd)->dist[(index)])
+#define usdtrans_get(usd, index) ((usd)->dist[(index)])
 
 double usdtrans_get2 (usdtrans_t * usd, size_t ix, size_t iy)
 {
-  size_t index;
   if (ix >= usd->dimx) {
     return NAN;
   }
@@ -178,11 +192,10 @@ double usdtrans_get2 (usdtrans_t * usd, size_t ix, size_t iy)
 }
 
 
-#define usdtrans_fget (usd, index) ((usd)->flags[(index)])
+#define usdtrans_fget(usd, index) ((usd)->flags[(index)])
 
 int usdtrans_fget2 (usdtrans_t * usd, size_t ix, size_t iy)
 {
-  size_t index;
   if (ix >= usd->dimx) {
     return -1;
   }
@@ -193,27 +206,219 @@ int usdtrans_fget2 (usdtrans_t * usd, size_t ix, size_t iy)
 }
 
 
-size_t usdtrans_compute_positive (usdtrans_t * usd, double maxdist)
+void usdtrans_update_positive (usdtrans_t * usd, size_t index)
 {
+  size_t nbor, ix, primary_index;
+  int northsouth;
+  double primary_dist, p2, rhs;
+  
+  if (usd->flags[index] & USDTRANS_FLAG_FIXED) {
+    return;
+  }
+  
+  usd->propagators->length = 0;
+  if (index >= usd->dimx) {
+    nbor = index - usd->dimx;	/* try south */
+    if ( ! (usd->flags[nbor] & USDTRANS_FLAG_UNKNOWN)) {
+      heap_insert (usd->propagators, usd->dist[nbor], (void*) nbor);
+    }
+  }
+  if (index < usd->toprow) {
+    nbor = index + usd->dimx;	/* try north */
+    if ( ! (usd->flags[nbor] & USDTRANS_FLAG_UNKNOWN)) {
+      heap_insert (usd->propagators, usd->dist[nbor], (void*) nbor);
+    }
+  }
+  ix = index % usd->dimx;
+  if (ix > 0) {
+    nbor = index - 1;		/* try west */
+    if ( ! (usd->flags[nbor] & USDTRANS_FLAG_UNKNOWN)) {
+      heap_insert (usd->propagators, usd->dist[nbor], (void*) nbor);
+    }
+  }
+  if (ix < usd->rightcol) {
+    nbor = index + 1;		/* try east */
+    if ( ! (usd->flags[nbor] & USDTRANS_FLAG_UNKNOWN)) {
+      heap_insert (usd->propagators, usd->dist[nbor], (void*) nbor);
+    }
+  }
+  
+  if (0 == usd->propagators->length) {
+    return;			/* "never happens" though */
+  }
+  
+  primary_dist = usd->propagators->key[1];
+  p2 = pow (primary_dist, 2.0);
+  primary_index = (size_t) usd->propagators->value[1];
+  northsouth = (ix == (primary_index % usd->dimx));
+  heap_pop (usd->propagators);
+  
+  for (/**/; 0 != usd->propagators->length; heap_pop (usd->propagators)) {
+    const size_t secondary_index = (size_t) usd->propagators->value[1];
+    if (northsouth ^ (ix == (secondary_index % usd->dimx))) {
+      const double secondary_dist = usd->propagators->key[1];
+      if (1.0 > secondary_dist - primary_dist) {
+	const double bb = primary_dist + secondary_dist;
+	const double cc = (p2 + pow (secondary_dist, 2.0) - 1.0) / 2.0;
+	const double root = pow (bb, 2.0) - 4.0 * cc;
+	rhs = (bb + sqrt (root)) / 2.0;
+	if (rhs < usd->dist[index]) {
+	  usdtrans_requeue (usd, index, rhs);
+	  return;
+	}
+      }
+    }
+  }
+  
+  rhs = primary_dist + 1.0;
+  if (rhs < usd->dist[index]) {
+    usdtrans_requeue (usd, index, rhs);
+  }
 }
 
 
-size_t usdtrans_compute_negative (usdtrans_t * usd, double mindist)
+void usdtrans_update_negative (usdtrans_t * usd, size_t index)
 {
+  size_t nbor, ix, primary_index;
+  int northsouth;
+  double primary_dist, p2, rhs;
+  
+  if (usd->flags[index] & USDTRANS_FLAG_FIXED) {
+    return;
+  }
+  
+  usd->propagators->length = 0;
+  if (index >= usd->dimx) {
+    nbor = index - usd->dimx;	/* try south */
+    if ( ! (usd->flags[nbor] & USDTRANS_FLAG_UNKNOWN)) {
+      heap_insert (usd->propagators, - usd->dist[nbor], (void*) nbor);
+    }
+  }
+  if (index < usd->toprow) {
+    nbor = index + usd->dimx;	/* try north */
+    if ( ! (usd->flags[nbor] & USDTRANS_FLAG_UNKNOWN)) {
+      heap_insert (usd->propagators, - usd->dist[nbor], (void*) nbor);
+    }
+  }
+  ix = index % usd->dimx;
+  if (ix > 0) {
+    nbor = index - 1;		/* try west */
+    if ( ! (usd->flags[nbor] & USDTRANS_FLAG_UNKNOWN)) {
+      heap_insert (usd->propagators, - usd->dist[nbor], (void*) nbor);
+    }
+  }
+  if (ix < usd->rightcol) {
+    nbor = index + 1;		/* try east */
+    if ( ! (usd->flags[nbor] & USDTRANS_FLAG_UNKNOWN)) {
+      heap_insert (usd->propagators, - usd->dist[nbor], (void*) nbor);
+    }
+  }
+  
+  if (0 == usd->propagators->length) {
+    return;			/* "never happens" though */
+  }
+  
+  primary_dist = usd->propagators->key[1];
+  p2 = pow (primary_dist, 2.0);
+  primary_index = (size_t) usd->propagators->value[1];
+  northsouth = (ix == (primary_index % usd->dimx));
+  heap_pop (usd->propagators);
+  
+  for (/**/; 0 != usd->propagators->length; heap_pop (usd->propagators)) {
+    const size_t secondary_index = (size_t) usd->propagators->value[1];
+    if (northsouth ^ (ix == (secondary_index % usd->dimx))) {
+      const double secondary_dist = usd->propagators->key[1];
+      if (1.0 > secondary_dist - primary_dist) {
+	const double bb = primary_dist + secondary_dist;
+	const double cc = (p2 + pow (secondary_dist, 2.0) - 1.0) / 2.0;
+	const double root = pow (bb, 2.0) - 4.0 * cc;
+	rhs = - (bb + sqrt (root)) / 2.0;
+	if (rhs > usd->dist[index]) {
+	  usdtrans_requeue (usd, index, rhs);
+	  return;
+	}
+      }
+    }
+  }
+  
+  rhs = - primary_dist - 1.0;
+  if (rhs > usd->dist[index]) {
+    usdtrans_requeue (usd, index, rhs);
+  }
 }
 
 
-size_t usdtrans_compute (usdtrans_t * usd, double range)
+void usdtrans_propagate_positive (usdtrans_t * usd)
 {
-  return usdtrans_compute_positive (usd, range) + usdtrans_compute_negative (usd, - range);
+  size_t index, ix;
+  index = (size_t) heap_pop (usd->queue_positive);
+  if (index >= usd->dimx) {
+    usdtrans_update_positive (usd, index - usd->dimx); /* south */
+  }
+  if (index < usd->toprow) {
+    usdtrans_update_positive (usd, index + usd->dimx); /* north */
+  }
+  ix = index % usd->dimx;
+  if (ix > 0) {
+    usdtrans_update_positive (usd, index - 1); /* west */
+  }
+  if (ix < usd->rightcol) {
+    usdtrans_update_positive (usd, index + 1); /* east */
+  }
 }
 
 
-int usdtrans_propagate_positive (usdtrans_t * usd)
+void usdtrans_propagate_negative (usdtrans_t * usd)
 {
+  size_t index, ix;
+  index = (size_t) heap_pop (usd->queue_negative);
+  if (index >= usd->dimx) {
+    usdtrans_update_negative (usd, index - usd->dimx); /* south */
+  }
+  if (index < usd->toprow) {
+    usdtrans_update_negative (usd, index + usd->dimx); /* north */
+  }
+  ix = index % usd->dimx;
+  if (ix > 0) {
+    usdtrans_update_negative (usd, index - 1); /* west */
+  }
+  if (ix < usd->rightcol) {
+    usdtrans_update_negative (usd, index + 1); /* east */
+  }
 }
 
 
-int usdtrans_propagate_negative (usdtrans_t * usd)
+void usdtrans_compute_positive (usdtrans_t * usd, double maxdist)
 {
+  while (0 != usd->queue_positive->length) {
+    if (usd->queue_positive->key[1] > maxdist) {
+      break;
+    }
+    usdtrans_propagate_positive (usd);
+  }
+}
+
+
+void usdtrans_compute_negative (usdtrans_t * usd, double mindist)
+{
+  while (0 != usd->queue_negative->length) {
+    if (usd->queue_negative->key[1] < mindist) {
+      break;
+    }
+    usdtrans_propagate_negative (usd);
+  }
+}
+
+
+void usdtrans_compute (usdtrans_t * usd, double range)
+{
+  usdtrans_compute_positive (usd, range);
+  usdtrans_compute_negative (usd, -range);
+}
+
+
+
+int main (int argc, char ** argv)
+{
+  return 0;
 }
