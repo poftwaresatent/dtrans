@@ -1,14 +1,12 @@
 CXX= g++
-CC= gcc
 CPPFLAGS= -Wall -I/opt/local/include
 CXXFLAGS= $(CPPFLAGS) -pipe -O0 -g
-CFLAGS= $(CPPFLAGS) -pipe -O0 -g
 LDFLAGS= -L/opt/local/lib -lpng -lm
 
 SRCS= DistanceTransform.cpp pngio.cpp
 OBJS= $(SRCS:.cpp=.o)
 
-all: test pngdtrans heap_test usdtrans
+all: test pngdtrans
 
 # Building gdtrans is painful on OS X, at least on my MacBook, because
 # the macports fltk expects arch=i386 but libpng wants arch=x86_64 and
@@ -18,12 +16,6 @@ all: test pngdtrans heap_test usdtrans
 # CPPFLAGS and LDFLAGS, but it shouldn't hurt to keep them.
 #
 # all: test pngdtrans gdtrans
-
-usdtrans: usdtrans.o heap.o
-	$(CC) -o usdtrans usdtrans.o heap.o
-
-heap_test: heap.o heap_test.o
-	$(CC) -o heap_test heap_test.o heap.o
 
 test: $(OBJS) test.o
 	$(CXX) -o test test.o $(OBJS) $(LDFLAGS)
@@ -39,6 +31,3 @@ gdtrans.o: gdtrans.cpp
 
 clean:
 	rm -f *~ *.o test pngdtrans gdtrans
-
-heap.o: heap.h
-heap_test.o: heap.h
