@@ -32,6 +32,9 @@
 #include "heap.h"
 #include <math.h>
 
+#include <stdio.h>
+#include <err.h>
+
 
 #define USDTRANS_INFINITY 1.0e9
 
@@ -417,8 +420,54 @@ void usdtrans_compute (usdtrans_t * usd, double range)
 }
 
 
+static void pnum6 (FILE * fp, double num)
+{
+  if (isinf(num)) {
+    fprintf(fp, "   inf");
+  }
+  else if (isnan(num)) {
+    fprintf(fp, "   nan");
+  }
+  else if (fabs(fmod(num, 1)) < 1e-6) {
+    fprintf(fp, " % 3d  ", (int) rint(num));
+  }
+  else {
+    fprintf(fp, " % 5.1f", num);
+  }
+}
+
+
+static void dump (usdtrans_t * usd)
+{
+  size_t ix, iy;
+  for (iy = usd->dimy - 1; iy < usd->dimy; --iy) { /* until oflo */
+    for (ix = 0; ix < usd->dimx; ++ix) {
+      pnum6 (stdout, usd->dist[ix + usd->dimx * iy]);
+    }
+    fprintf (stdout, "\n");
+  }
+}
+
 
 int main (int argc, char ** argv)
 {
+  usdtrans_t * usd;
+  size_t ix, iy;
+  if ( ! (usd = usdtrans_create (5, 10))) {
+    err (EXIT_FAILURE, "failed to create usd\n");
+  }
+  for (ix = 0; ix < usd->dimx; ++ix) {
+    for (iy = 0; iy < usd->dimy / 2; ++iy) {
+      usdtrans_partition2 (usd, ix, iy, -100.0);
+    }
+    for (iy = usd->dimy / 2; iy < usd->dimy; ++iy) {
+      usdtrans_partition2 (usd, ix, iy,  100.0);
+    }
+    for (iy = usd->dimy / 2; iy < 2 + usd->dimy / 2; ++iy) {
+      usdtrans_seed2 (usd, ix, iy, iy - usd->dimy / 2 - 0.5);
+    }
+  }
+  dump (usd);
+  usdtrans_destroy (usd);
   return 0;
 }
