@@ -162,6 +162,14 @@ namespace dtrans {
     if (m_model) {
       std::cerr << "\nMORE WORK TO DO!\nimplement sailboat transform update with model\nBYEBYE see you later!\n";
       abort();
+      // will need to do the speed model within the search for a
+      // secondary propagator, because the radius determines whether
+      // we can use interpolation, and the upwind direction is
+      // determined by the secondary propagator's value. bit of a
+      // chicken and egg there, but should be solvable. can also
+      // revert the gradient method back to its original form, or
+      // better yet extract a common base class for DistanceTransform
+      // and SailboatTransform.
     }
     else {
       radius = m_scale;	// it's h/F, or scale/speed ...
