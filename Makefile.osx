@@ -1,0 +1,28 @@
+CXX= g++
+CPPFLAGS= -Wall -I/opt/local/include
+CXXFLAGS= $(CPPFLAGS) -pipe -O0 -g -arch i386
+LDFLAGS= -L/opt/local/lib -lpng -lm -arch i386
+
+SRCS= DistanceTransform.cpp SailboatTransform.cpp pngio.cpp
+OBJS= $(SRCS:.cpp=.o)
+
+#all: test pngdtrans gdtrans
+all: test pngdtrans testSailboat
+
+test: $(OBJS) test.o
+	$(CXX) -o test test.o $(OBJS) $(LDFLAGS)
+
+testSailboat: $(OBJS) testSailboat.o
+	$(CXX) -o testSailboat testSailboat.o $(OBJS) $(LDFLAGS)
+
+pngdtrans: $(OBJS) pngdtrans.o
+	$(CXX) -o pngdtrans pngdtrans.o $(OBJS) $(LDFLAGS)
+
+#gdtrans: $(OBJS) gdtrans.o
+#	$(CXX) -o gdtrans gdtrans.o $(OBJS) $(LDFLAGS) `fltk-config --ldflags`
+#
+#gdtrans.o: gdtrans.cpp
+#	$(CXX) `fltk-config --cxxflags` $(CXXFLAGS) -c gdtrans.cpp
+
+clean:
+	rm -f *~ *.o test testSailboat pngdtrans gdtrans
