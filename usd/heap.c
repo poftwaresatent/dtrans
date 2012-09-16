@@ -115,6 +115,7 @@ int heap_grow (heap_t * heap)
     return -1;
   }
   if ( ! (vv = realloc (heap->value, cc * sizeof(void*)))) {
+#warning 'I think there is a memleak here.'
     return -1;
   }
   heap->capacity = cc - 1;	/* remember to remove the +1 for the extra element */
