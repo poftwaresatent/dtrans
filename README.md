@@ -3,6 +3,7 @@
 ```
 Copyright (C) 2010 Roland Philippsen. All rights reserved.
 Released under new BSD license. See LICENSE.BSD for details.
+```
 
 
 ## Building the Library and Examples
