@@ -1,7 +1,7 @@
 # dtrans Distance Transform utility
 
 ```
-Copyright (C) 2010 Roland Philippsen. All rights reserved.
+Copyright (C) 2010-2012 Roland Philippsen <roland dot philippsen at gmx dot net. All rights reserved.
 Released under new BSD license. See LICENSE.BSD for details.
 ```
 
