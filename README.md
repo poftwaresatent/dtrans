@@ -1,9 +1,8 @@
 # dtrans Distance Transform utility
 
-```
-Copyright (C) 2010-2012 Roland Philippsen <roland dot philippsen at gmx dot net. All rights reserved.
-Released under new BSD license. See LICENSE.BSD for details.
-```
+> Copyright (C) 2010-2012 Roland Philippsen <roland dot philippsen at gmx dot net. All rights reserved.
+>
+> Released under new BSD license. See `LICENSE.BSD` for details.
 
 
 ## Building the Library and Examples
@@ -62,7 +61,7 @@ The `pngdtrans` application on the other hand is supposed to be useful right awa
 
     $ ./pngdtrans -h
 
-For example, if you want to plan a path through a maze, you need a speed map file (in this case `maze.png` adapted from [this one][http://en.wikipedia.org/wiki/File:Maze01-01.png]) and a file which specifies your goal location (in this case `goal.png`):
+For example, if you want to plan a path through a maze, you need a speed map file (in this case `maze.png` adapted from [this one](http://en.wikipedia.org/wiki/File:Maze01-01.png)) and a file which specifies your goal location (in this case `goal.png`):
 
     $ ./pngdtrans -s maze.png -i goal.png -o path.png
 
